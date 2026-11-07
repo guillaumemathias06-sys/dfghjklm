@@ -155,9 +155,37 @@ class LA_Anniv_Bookings {
 			$date  = get_post_meta( $id, '_la_date', true );
 			$start = self::to_min( get_post_meta( $id, '_la_heure', true ) );
 			$end   = $start + (int) get_post_meta( $id, '_la_duree', true );
-			$out[ $date ][] = array( $start, $end );
+			$out[ $date ][] = array( $start, $end, (string) get_post_meta( $id, '_la_terrain', true ) );
 		}
 		return $out;
+	}
+
+	/**
+	 * Premier terrain libre entre $s et $e (minutes) : ni réservé dans Playtomic,
+	 * ni déjà attribué à un autre anniversaire. '' si aucun.
+	 */
+	private static function free_court( $courts, $pt_day, $local, $s, $e ) {
+		foreach ( $courts as $c ) {
+			$busy = false;
+			foreach ( isset( $pt_day[ $c ] ) ? $pt_day[ $c ] : array() as $r ) {
+				if ( $r[0] < $e && $s < $r[1] ) {
+					$busy = true;
+					break;
+				}
+			}
+			if ( ! $busy ) {
+				foreach ( $local as $r ) {
+					if ( ! empty( $r[2] ) && $r[2] === $c && $r[0] < $e && $s < $r[1] ) {
+						$busy = true;
+						break;
+					}
+				}
+			}
+			if ( ! $busy ) {
+				return $c;
+			}
+		}
+		return '';
 	}
 
 	private static function overlaps( $ranges, $s, $e ) {
@@ -173,7 +201,7 @@ class LA_Anniv_Bookings {
 	/**
 	 * Créneaux d'une date, avec disponibilité.
 	 */
-	public static function slots_for( $date, $occ = null ) {
+	public static function slots_for( $date, $occ = null, $pt = false ) {
 		$s = LA_Anniv_Settings::get();
 		if ( ! self::valid_date( $date ) ) {
 			return array();
@@ -194,6 +222,19 @@ class LA_Anniv_Bookings {
 		if ( isset( $blocked[ $date ] ) && true === $blocked[ $date ] ) {
 			return array();
 		}
+		// Planning Playtomic (false = à charger, null = Playtomic injoignable).
+		$pt_on = LA_Anniv_Playtomic::enabled();
+		if ( $pt_on && false === $pt ) {
+			$pt = LA_Anniv_Playtomic::for_range( $date, $date );
+		}
+		$pt_ok = $pt_on && is_array( $pt );
+		if ( $pt_on && ! $pt_ok && 'fermer' === $s['pt_si_erreur'] ) {
+			return array();
+		}
+		$pt_day = ( $pt_ok && isset( $pt[ $date ] ) ) ? $pt[ $date ] : array();
+		$courts = $pt_ok ? LA_Anniv_Playtomic::courts_selected() : array();
+		$marge  = (int) $s['pt_marge'];
+
 		if ( null === $occ ) {
 			$occ = self::occupancy( $date, $date );
 		}
@@ -208,13 +249,24 @@ class LA_Anniv_Bookings {
 			$closed  = isset( $blocked[ $date ] ) && is_array( $blocked[ $date ] ) && in_array( $t, $blocked[ $date ], true );
 			$ok      = ! $closed && self::overlaps( $ranges, $start, $start + $duree ) < $cap;
 			$extraok = $ok && self::overlaps( $ranges, $start, $start + $duree + 30 ) < $cap;
-			$gouter  = $start + $duree - 30;
-			$out[]   = array(
-				'h'     => $t,
-				'fin'   => self::to_hhmm( $start + $duree ),
-				'ok'    => $ok,
-				'extra' => $extraok,
-				'pizza' => $gouter >= $p_deb && $gouter <= $p_fin,
+			$court   = '';
+			$court_x = '';
+			if ( $pt_ok ) {
+				// Un terrain doit être libre dans Playtomic, marge d'installation comprise.
+				$court   = $ok ? self::free_court( $courts, $pt_day, $ranges, $start - $marge, $start + $duree + $marge ) : '';
+				$ok      = '' !== $court;
+				$court_x = $ok ? self::free_court( $courts, $pt_day, $ranges, $start - $marge, $start + $duree + 30 + $marge ) : '';
+				$extraok = $extraok && '' !== $court_x;
+			}
+			$gouter = $start + $duree - 30;
+			$out[]  = array(
+				'h'           => $t,
+				'fin'         => self::to_hhmm( $start + $duree ),
+				'ok'          => $ok,
+				'extra'       => $extraok,
+				'pizza'       => $gouter >= $p_deb && $gouter <= $p_fin,
+				'court'       => $court,
+				'court_extra' => $court_x,
 			);
 		}
 		return $out;
@@ -232,10 +284,11 @@ class LA_Anniv_Bookings {
 		$from = sprintf( '%s-01', $ym );
 		$to   = sprintf( '%s-%02d', $ym, $days );
 		$occ  = self::occupancy( $from, $to );
+		$pt   = LA_Anniv_Playtomic::enabled() ? LA_Anniv_Playtomic::for_range( $from, $to ) : array();
 		$out  = array();
 		for ( $d = 1; $d <= $days; $d++ ) {
 			$date  = sprintf( '%s-%02d', $ym, $d );
-			$slots = self::slots_for( $date, $occ );
+			$slots = self::slots_for( $date, $occ, $pt );
 			if ( $slots ) {
 				$out[ $date ] = $slots;
 			}
@@ -253,8 +306,9 @@ class LA_Anniv_Bookings {
 			return null;
 		}
 		$occ = self::occupancy( $start->format( 'Y-m-d' ), $end->format( 'Y-m-d' ) );
+		$pt  = LA_Anniv_Playtomic::enabled() ? LA_Anniv_Playtomic::for_range( $start->format( 'Y-m-d' ), $end->format( 'Y-m-d' ) ) : array();
 		for ( $d = $start; $d <= $end; $d = $d->modify( '+1 day' ) ) {
-			foreach ( self::slots_for( $d->format( 'Y-m-d' ), $occ ) as $slot ) {
+			foreach ( self::slots_for( $d->format( 'Y-m-d' ), $occ, $pt ) as $slot ) {
 				if ( $slot['ok'] ) {
 					return $d->format( 'Y-m-d' );
 				}
@@ -341,7 +395,10 @@ class LA_Anniv_Bookings {
 
 		$extra = ! empty( $opts['extra'] );
 		$slot  = null;
-		foreach ( self::slots_for( $date ) as $sl ) {
+		// Planning Playtomic relu sans cache au moment de valider.
+		$pt_on = LA_Anniv_Playtomic::enabled();
+		$pt    = ( $pt_on && self::valid_date( $date ) ) ? LA_Anniv_Playtomic::occupancy( $date, $date, true ) : array();
+		foreach ( self::slots_for( $date, null, $pt ) as $sl ) {
 			if ( $sl['h'] === $heure ) {
 				$slot = $sl;
 			}
@@ -406,6 +463,9 @@ class LA_Anniv_Bookings {
 		$data['prix'] = self::price( $data );
 		$duree        = (int) $s['duree'] + ( $extra ? 30 : 0 );
 		$data['fin']  = self::to_hhmm( self::to_min( $heure ) + $duree );
+		$data['terrain']     = $slot ? ( $extra ? $slot['court_extra'] : $slot['court'] ) : '';
+		$data['terrain_nom'] = $data['terrain'] ? LA_Anniv_Playtomic::court_name( $data['terrain'] ) : '';
+		$data['pt_verifie']  = $pt_on ? is_array( $pt ) : null;
 		$data['ref']  = 'ANN-' . strtoupper( wp_generate_password( 6, false, false ) );
 		$data['jeton']= wp_generate_password( 24, false, false );
 
@@ -428,12 +488,19 @@ class LA_Anniv_Bookings {
 		update_post_meta( $id, '_la_cree', time() );
 		update_post_meta( $id, '_la_ref', $data['ref'] );
 		update_post_meta( $id, '_la_jeton', $data['jeton'] );
+		update_post_meta( $id, '_la_terrain', $data['terrain'] );
 
 		// Double réservation simultanée : on vérifie après coup.
 		$occ    = self::occupancy( $date, $date, $id );
 		$ranges = isset( $occ[ $date ] ) ? $occ[ $date ] : array();
 		$start  = self::to_min( $heure );
-		if ( self::overlaps( $ranges, $start, $start + $duree ) >= max( 1, (int) $s['fetes_par_creneau'] ) ) {
+		$same_court = 0;
+		foreach ( $ranges as $r ) {
+			if ( $data['terrain'] && ! empty( $r[2] ) && $r[2] === $data['terrain'] && $r[0] < $start + $duree && $start < $r[1] ) {
+				$same_court++;
+			}
+		}
+		if ( $same_court || self::overlaps( $ranges, $start, $start + $duree ) >= max( 1, (int) $s['fetes_par_creneau'] ) ) {
 			wp_delete_post( $id, true );
 			return new WP_Error( 'creneau', 'Ce créneau vient d’être réservé par une autre famille. Choisissez-en un autre.' );
 		}
@@ -546,6 +613,18 @@ class LA_Anniv_Bookings {
 		return wp_mail( $to, $subject, $html, $headers );
 	}
 
+	/** Rappel de blocage du terrain dans Playtomic (l'API Playtomic est en lecture seule). */
+	private static function playtomic_html( $d ) {
+		if ( ! isset( $d['pt_verifie'] ) || null === $d['pt_verifie'] ) {
+			return '';
+		}
+		$when = ucfirst( self::date_fr( $d['date'] ) ) . ', ' . LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] );
+		if ( ! $d['pt_verifie'] ) {
+			return '<p style="background:#FDE2E2;color:#9B1C1C;border-radius:12px;padding:12px 14px"><strong>⚠ Playtomic n’a pas pu être consulté</strong> au moment de la demande. Vérifiez dans Playtomic Manager qu’un terrain de foot est libre le ' . esc_html( $when ) . ', puis bloquez-le.</p>';
+		}
+		return '<p style="background:#FFF4D6;color:#5C3D00;border-radius:12px;padding:12px 14px"><strong>À faire dans Playtomic Manager :</strong> bloquer le terrain <strong>' . esc_html( $d['terrain_nom'] ? $d['terrain_nom'] : 'de foot' ) . '</strong> le ' . esc_html( $when ) . ' (le terrain était libre au moment de la demande).</p>';
+	}
+
 	public static function mail_club( $d ) {
 		$to = LA_Anniv_Settings::get( 'email_notif' );
 		if ( ! $to ) {
@@ -553,6 +632,7 @@ class LA_Anniv_Bookings {
 		}
 		$c     = $d['contact'];
 		$body  = '<p><strong>Nouvelle demande d’anniversaire.</strong> Le créneau est bloqué en attendant l’acompte.</p>';
+		$body .= self::playtomic_html( $d );
 		$body .= self::recap_html( $d );
 		$body .= '<h3 style="margin:22px 0 8px">Parent</h3><p>' . esc_html( $c['nom'] ) . '<br>' . esc_html( $c['tel'] ) . '<br><a href="mailto:' . esc_attr( $c['email'] ) . '">' . esc_html( $c['email'] ) . '</a></p>';
 		if ( $c['parent_present'] ) {

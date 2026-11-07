@@ -24,6 +24,8 @@ class LA_Anniv_Settings {
 
 	public static function init() {
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
+		add_action( 'update_option_' . self::OPTION, array( 'LA_Anniv_Playtomic', 'flush' ) );
+		add_action( 'admin_post_la_anniv_pt_test', array( __CLASS__, 'pt_test' ) );
 	}
 
 	public static function defaults() {
@@ -68,6 +70,16 @@ class LA_Anniv_Settings {
 			'page_cgv'          => '',
 			'texte_meteo'       => "Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l'anniversaire à une date de votre choix, sans frais. L'acompte reste valable pour la nouvelle date.",
 			'gabarit'           => 'club',
+			// Playtomic.
+			'pt_actif'          => 0,
+			'pt_tenant'         => '35f29b82-3bc5-491f-a5bf-7be76eedb9ec',
+			'pt_client_id'      => '',
+			'pt_secret'         => '',
+			'pt_sport'          => 'FOOTBALL_OTHERS',
+			'pt_terrains'       => array(),
+			'pt_marge'          => 0,
+			'pt_cache'          => 5,
+			'pt_si_erreur'      => 'local',
 			// Photos (vide = photos du site Les Acacias).
 			'img_hero'          => '',
 			'img_foot'          => '',
@@ -286,10 +298,102 @@ class LA_Anniv_Settings {
 		$out['adresse']        = isset( $in['adresse'] ) ? sanitize_text_field( $in['adresse'] ) : $d['adresse'];
 		$out['texte_meteo']    = isset( $in['texte_meteo'] ) ? sanitize_textarea_field( $in['texte_meteo'] ) : $d['texte_meteo'];
 		$out['gabarit']        = ( isset( $in['gabarit'] ) && 'theme' === $in['gabarit'] ) ? 'theme' : 'club';
+
+		// Playtomic.
+		$prev               = self::get();
+		$out['pt_actif']    = empty( $in['pt_actif'] ) ? 0 : 1;
+		$out['pt_tenant']   = isset( $in['pt_tenant'] ) ? preg_replace( '/[^A-Za-z0-9-]/', '', $in['pt_tenant'] ) : $d['pt_tenant'];
+		$out['pt_client_id']= isset( $in['pt_client_id'] ) ? sanitize_text_field( trim( $in['pt_client_id'] ) ) : $prev['pt_client_id'];
+		// Champ vide = on garde la clé déjà enregistrée (elle n'est jamais réaffichée).
+		$out['pt_secret']   = ( isset( $in['pt_secret'] ) && '' !== trim( $in['pt_secret'] ) ) ? trim( $in['pt_secret'] ) : $prev['pt_secret'];
+		if ( ! empty( $in['pt_secret_suppr'] ) ) {
+			$out['pt_secret'] = '';
+		}
+		$sports             = array_keys( self::pt_sports() );
+		$out['pt_sport']    = ( isset( $in['pt_sport'] ) && in_array( $in['pt_sport'], $sports, true ) ) ? $in['pt_sport'] : $d['pt_sport'];
+		$out['pt_terrains'] = ( isset( $in['pt_terrains'] ) && is_array( $in['pt_terrains'] ) ) ? array_values( array_map( 'sanitize_text_field', $in['pt_terrains'] ) ) : array();
+		$out['pt_marge']    = isset( $in['pt_marge'] ) ? min( 120, max( 0, (int) $in['pt_marge'] ) ) : 0;
+		$out['pt_cache']    = isset( $in['pt_cache'] ) ? min( 60, max( 1, (int) $in['pt_cache'] ) ) : 5;
+		$out['pt_si_erreur']= ( isset( $in['pt_si_erreur'] ) && 'fermer' === $in['pt_si_erreur'] ) ? 'fermer' : 'local';
 		foreach ( array( 'lien_paiement', 'page_cgv', 'img_hero', 'img_foot', 'img_defis', 'img_gouter' ) as $k ) {
 			$out[ $k ] = isset( $in[ $k ] ) ? esc_url_raw( trim( $in[ $k ] ) ) : '';
 		}
 		return $out;
+	}
+
+	public static function pt_sports() {
+		return array(
+			''                => 'Tous les sports',
+			'FOOTBALL_OTHERS' => 'Football (foot à 5)',
+			'FUTSAL'          => 'Futsal',
+			'FOOTBALL7'       => 'Football à 7',
+			'PADEL'           => 'Padel',
+			'TENNIS'          => 'Tennis',
+		);
+	}
+
+	/** Bouton « Tester la connexion ». */
+	public static function pt_test() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Accès refusé.' );
+		}
+		check_admin_referer( 'la_anniv_pt_test' );
+		set_transient( 'la_anniv_pt_test_' . get_current_user_id(), LA_Anniv_Playtomic::test(), 120 );
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . LA_Anniv_Bookings::CPT . '&page=la-anniv-reglages#playtomic' ) );
+		exit;
+	}
+
+	private static function render_playtomic() {
+		$s     = self::get();
+		$n     = self::OPTION;
+		$known = LA_Anniv_Playtomic::courts_known();
+		$sel   = is_array( $s['pt_terrains'] ) ? $s['pt_terrains'] : array();
+		$test  = get_transient( 'la_anniv_pt_test_' . get_current_user_id() );
+		$stat  = LA_Anniv_Playtomic::last_status();
+		$const = defined( 'LA_ANNIV_PLAYTOMIC_CLIENT_ID' ) || defined( 'LA_ANNIV_PLAYTOMIC_SECRET' );
+		if ( $test ) {
+			delete_transient( 'la_anniv_pt_test_' . get_current_user_id() );
+			printf( '<div class="notice notice-%s inline"><p>%s</p></div>', $test['ok'] ? 'success' : 'error', esc_html( $test['message'] ) );
+		}
+		?>
+		<h2 class="title" id="playtomic">Planning Playtomic</h2>
+		<p>Le tunnel ne propose un créneau que si un terrain de foot est libre dans Playtomic (réservations, récurrences, cours, tournois), en plus des anniversaires déjà demandés.
+		L’API Playtomic est en <strong>lecture seule</strong> : après chaque demande, le club reçoit un rappel pour bloquer le terrain attribué dans Playtomic Manager.</p>
+		<table class="form-table" role="presentation">
+			<tr><th scope="row">Activer</th><td><label><input type="checkbox" name="<?php echo esc_attr( $n ); ?>[pt_actif]" value="1" <?php checked( $s['pt_actif'], 1 ); ?>> Vérifier les disponibilités dans Playtomic</label>
+			<?php if ( ! empty( $stat['ok'] ) ) : ?><p class="description">Dernière lecture réussie : <?php echo esc_html( wp_date( 'd/m/Y H:i', $stat['ok'] ) ); ?>.</p><?php endif; ?>
+			<?php if ( ! empty( $stat['err'] ) && ( empty( $stat['ok'] ) || $stat['err'] > $stat['ok'] ) ) : ?><p class="description" style="color:#b32d2e">Dernière erreur (<?php echo esc_html( wp_date( 'd/m/Y H:i', $stat['err'] ) ); ?>) : <?php echo esc_html( isset( $stat['message'] ) ? $stat['message'] : '' ); ?></p><?php endif; ?>
+			</td></tr>
+			<tr><th scope="row"><label for="pt_tenant">ID du club (venue)</label></th><td><input type="text" id="pt_tenant" class="regular-text code" name="<?php echo esc_attr( $n ); ?>[pt_tenant]" value="<?php echo esc_attr( $s['pt_tenant'] ); ?>"></td></tr>
+			<?php if ( $const ) : ?>
+				<tr><th scope="row">Identifiants API</th><td><p>Définis dans <code>wp-config.php</code> (<code>LA_ANNIV_PLAYTOMIC_CLIENT_ID</code> / <code>LA_ANNIV_PLAYTOMIC_SECRET</code>).</p></td></tr>
+			<?php else : ?>
+				<tr><th scope="row"><label for="pt_client_id">ID API (client_id)</label></th><td><input type="text" id="pt_client_id" class="regular-text code" autocomplete="off" name="<?php echo esc_attr( $n ); ?>[pt_client_id]" value="<?php echo esc_attr( $s['pt_client_id'] ); ?>" placeholder="clb_…"><p class="description">Playtomic Manager › Réglages › Outils de développement.</p></td></tr>
+				<tr><th scope="row"><label for="pt_secret">Clé secrète</label></th><td><input type="password" id="pt_secret" class="regular-text code" autocomplete="new-password" name="<?php echo esc_attr( $n ); ?>[pt_secret]" value="" placeholder="<?php echo $s['pt_secret'] ? esc_attr( '•••••••• enregistrée — laisser vide pour la conserver' ) : ''; ?>">
+				<?php if ( $s['pt_secret'] ) : ?><br><label><input type="checkbox" name="<?php echo esc_attr( $n ); ?>[pt_secret_suppr]" value="1"> Effacer la clé enregistrée</label><?php endif; ?>
+				<p class="description">Jamais réaffichée. Pour plus de sécurité, vous pouvez la placer dans <code>wp-config.php</code> : <code>define( 'LA_ANNIV_PLAYTOMIC_SECRET', '…' );</code></p></td></tr>
+			<?php endif; ?>
+			<tr><th scope="row"><label for="pt_sport">Sport des terrains</label></th><td><select id="pt_sport" name="<?php echo esc_attr( $n ); ?>[pt_sport]">
+				<?php foreach ( self::pt_sports() as $k => $v ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $s['pt_sport'], $k ); ?>><?php echo esc_html( $v ); ?></option><?php endforeach; ?>
+			</select></td></tr>
+			<tr><th scope="row">Terrains pour les anniversaires</th><td>
+				<?php if ( ! $known ) : ?>
+					<p class="description">Enregistrez vos identifiants puis cliquez sur « Tester la connexion » : la liste des terrains apparaîtra ici.</p>
+				<?php else : ?>
+					<?php foreach ( $known as $id => $name ) : ?>
+						<label style="display:block;margin-bottom:4px"><input type="checkbox" name="<?php echo esc_attr( $n ); ?>[pt_terrains][]" value="<?php echo esc_attr( $id ); ?>" <?php checked( in_array( $id, $sel, true ) ); ?>> <?php echo esc_html( $name ); ?></label>
+					<?php endforeach; ?>
+					<p class="description">Aucune case cochée = tous les terrains ci-dessus. Le premier terrain libre (dans cet ordre) est attribué à la fête.</p>
+				<?php endif; ?>
+			</td></tr>
+			<tr><th scope="row"><label for="pt_marge">Marge avant / après (min)</label></th><td><input type="number" id="pt_marge" class="small-text" min="0" max="120" step="5" name="<?php echo esc_attr( $n ); ?>[pt_marge]" value="<?php echo esc_attr( $s['pt_marge'] ); ?>"><p class="description">Temps d’installation et de rangement : le terrain doit être libre aussi pendant cette marge.</p></td></tr>
+			<tr><th scope="row"><label for="pt_cache">Actualisation (min)</label></th><td><input type="number" id="pt_cache" class="small-text" min="1" max="60" name="<?php echo esc_attr( $n ); ?>[pt_cache]" value="<?php echo esc_attr( $s['pt_cache'] ); ?>"><p class="description">Le calendrier relit Playtomic au plus toutes les X minutes. La disponibilité est toujours revérifiée en direct au moment de la demande.</p></td></tr>
+			<tr><th scope="row">Si Playtomic ne répond pas</th><td>
+				<label><input type="radio" name="<?php echo esc_attr( $n ); ?>[pt_si_erreur]" value="local" <?php checked( $s['pt_si_erreur'], 'local' ); ?>> Continuer avec les créneaux du site (la demande est signalée « à vérifier »)</label><br>
+				<label><input type="radio" name="<?php echo esc_attr( $n ); ?>[pt_si_erreur]" value="fermer" <?php checked( $s['pt_si_erreur'], 'fermer' ); ?>> Ne proposer aucun créneau</label>
+			</td></tr>
+		</table>
+		<?php
 	}
 
 	public static function render_page() {
@@ -390,6 +494,8 @@ class LA_Anniv_Settings {
 					</tr>
 				</table>
 
+				<?php self::render_playtomic(); ?>
+
 				<h2 class="title">Club</h2>
 				<table class="form-table" role="presentation">
 					<?php
@@ -419,6 +525,12 @@ class LA_Anniv_Settings {
 				</table>
 
 				<?php submit_button(); ?>
+			</form>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:-8px">
+				<input type="hidden" name="action" value="la_anniv_pt_test">
+				<?php wp_nonce_field( 'la_anniv_pt_test' ); ?>
+				<?php submit_button( 'Tester la connexion Playtomic', 'secondary', 'submit', false ); ?>
+				<span class="description">Enregistrez d’abord les réglages.</span>
 			</form>
 		</div>
 		<?php

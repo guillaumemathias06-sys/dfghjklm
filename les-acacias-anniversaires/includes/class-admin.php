@@ -53,6 +53,9 @@ class LA_Anniv_Admin {
 		if ( ! LA_Anniv_Front::club_has( 'assets/site.css' ) ) {
 			echo '<div class="notice notice-warning"><p><strong>Anniversaires :</strong> le plugin « les-acacias-site » est introuvable. Les pages anniversaires utilisent ses polices, ses photos et ses styles : installez-le ou activez-le pour retrouver le design du site.</p></div>';
 		}
+		if ( LA_Anniv_Playtomic::enabled() && ! LA_Anniv_Playtomic::courts_known() ) {
+			echo '<div class="notice notice-warning"><p><strong>Anniversaires :</strong> Playtomic est activé mais aucun terrain n’est encore connu. Ouvrez Anniversaires › Réglages et cliquez sur « Tester la connexion Playtomic ».</p></div>';
+		}
 		if ( isset( $_GET['la_mail'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			echo '<div class="notice notice-success is-dismissible"><p>E-mail de confirmation envoyé à la famille.</p></div>';
 		}
@@ -85,6 +88,7 @@ class LA_Anniv_Admin {
 		switch ( $col ) {
 			case 'la_date':
 				echo '<strong>' . esc_html( ucfirst( LA_Anniv_Bookings::date_fr( $d['date'] ) ) ) . '</strong><br>' . esc_html( LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] ) );
+				echo self::playtomic_badge( $id, $d ); // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'la_formule':
 				echo esc_html( isset( $F[ $d['formule'] ] ) ? $F[ $d['formule'] ]['nom'] : $d['formule'] ) . '<br><span class="description">' . esc_html( isset( $U[ $d['univers'] ] ) ? $U[ $d['univers'] ]['nom'] : '' ) . '</span>';
@@ -119,6 +123,60 @@ class LA_Anniv_Admin {
 				echo self::badge( $s, $id ); // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 		}
+	}
+
+	/**
+	 * Terrain attribué et état dans Playtomic : bloqué (une réservation couvre
+	 * toute la fête), conflit (chevauchement partiel) ou à bloquer.
+	 */
+	public static function playtomic_state( $id, $d ) {
+		$court = (string) get_post_meta( $id, '_la_terrain', true );
+		$out   = array( 'court' => $court, 'name' => $court ? LA_Anniv_Playtomic::court_name( $court ) : '', 'state' => '' );
+		if ( ! LA_Anniv_Playtomic::enabled() || $d['date'] < LA_Anniv_Bookings::today() ) {
+			return $out;
+		}
+		if ( in_array( get_post_meta( $id, '_la_statut', true ), array( 'annulee', 'terminee' ), true ) ) {
+			return $out;
+		}
+		if ( ! $court ) {
+			$out['state'] = 'aucun';
+			return $out;
+		}
+		$pt = LA_Anniv_Playtomic::for_range( $d['date'], $d['date'] );
+		if ( ! is_array( $pt ) ) {
+			$out['state'] = 'injoignable';
+			return $out;
+		}
+		$s     = LA_Anniv_Bookings::to_min( $d['heure'] );
+		$e     = LA_Anniv_Bookings::to_min( $d['fin'] );
+		$state = 'a_bloquer';
+		foreach ( isset( $pt[ $d['date'] ][ $court ] ) ? $pt[ $d['date'] ][ $court ] : array() as $r ) {
+			if ( $r[0] <= $s && $r[1] >= $e ) {
+				$state = 'bloque';
+				break;
+			}
+			if ( $r[0] < $e && $s < $r[1] ) {
+				$state = 'conflit';
+			}
+		}
+		$out['state'] = $state;
+		return $out;
+	}
+
+	private static function playtomic_badge( $id, $d ) {
+		$p = self::playtomic_state( $id, $d );
+		$h = $p['name'] ? '<br><span class="description">' . esc_html( $p['name'] ) . '</span>' : '';
+		$labels = array(
+			'bloque'      => array( 'ok', '✓ bloqué dans Playtomic' ),
+			'a_bloquer'   => array( 'todo', '⚠ à bloquer dans Playtomic' ),
+			'conflit'     => array( 'bad', '⚠ conflit Playtomic' ),
+			'aucun'       => array( 'todo', '⚠ terrain à choisir' ),
+			'injoignable' => array( 'todo', 'Playtomic injoignable' ),
+		);
+		if ( isset( $labels[ $p['state'] ] ) ) {
+			$h .= '<br><span class="la-pt la-pt-' . $labels[ $p['state'] ][0] . '">' . esc_html( $labels[ $p['state'] ][1] ) . '</span>';
+		}
+		return $h;
 	}
 
 	private static function expired( $id ) {
@@ -202,6 +260,9 @@ class LA_Anniv_Admin {
 	public static function boxes() {
 		add_meta_box( 'la_anniv_detail', 'Détail de la réservation', array( __CLASS__, 'box_detail' ), LA_Anniv_Bookings::CPT, 'normal', 'high' );
 		add_meta_box( 'la_anniv_statut', 'Statut', array( __CLASS__, 'box_statut' ), LA_Anniv_Bookings::CPT, 'side', 'high' );
+		if ( LA_Anniv_Playtomic::enabled() ) {
+			add_meta_box( 'la_anniv_pt', 'Terrain · Playtomic', array( __CLASS__, 'box_playtomic' ), LA_Anniv_Bookings::CPT, 'side', 'default' );
+		}
 	}
 
 	public static function box_detail( $post ) {
@@ -256,6 +317,36 @@ class LA_Anniv_Admin {
 		echo '<p><a class="button" href="' . esc_url( LA_Anniv_Bookings::invitation_url( $d ) ) . '" target="_blank">Voir l’invitation de la famille</a></p>';
 	}
 
+	public static function box_playtomic( $post ) {
+		$d = get_post_meta( $post->ID, '_la_data', true );
+		if ( ! is_array( $d ) ) {
+			return;
+		}
+		$p     = self::playtomic_state( $post->ID, $d );
+		$known = LA_Anniv_Playtomic::courts_known();
+		$texts = array(
+			'bloque'      => 'Une réservation Playtomic couvre toute la fête sur ce terrain : c’est bloqué.',
+			'a_bloquer'   => 'Aucune réservation sur ce terrain dans Playtomic : pensez à le bloquer dans Playtomic Manager.',
+			'conflit'     => 'Une réservation Playtomic chevauche une partie de la fête sur ce terrain : vérifiez le planning.',
+			'aucun'       => 'Aucun terrain attribué : choisissez-en un ci-dessous.',
+			'injoignable' => 'Playtomic n’a pas répondu. Réessayez plus tard.',
+		);
+		if ( isset( $texts[ $p['state'] ] ) ) {
+			echo '<p>' . esc_html( $texts[ $p['state'] ] ) . '</p>';
+		}
+		if ( isset( $d['pt_verifie'] ) && false === $d['pt_verifie'] ) {
+			echo '<p style="color:#b32d2e">Playtomic n’avait pas pu être consulté au moment de la demande.</p>';
+		}
+		echo '<p><label for="la_terrain"><strong>Terrain</strong></label><br><select name="la_terrain" id="la_terrain" style="width:100%"><option value="">—</option>';
+		foreach ( $known as $id => $name ) {
+			printf( '<option value="%s" %s>%s</option>', esc_attr( $id ), selected( $p['court'], $id, false ), esc_html( $name ) );
+		}
+		if ( $p['court'] && ! isset( $known[ $p['court'] ] ) ) {
+			printf( '<option value="%s" selected>%s</option>', esc_attr( $p['court'] ), esc_html( $p['court'] ) );
+		}
+		echo '</select></p>';
+	}
+
 	public static function box_statut( $post ) {
 		wp_nonce_field( 'la_anniv_statut', 'la_anniv_nonce' );
 		$s    = get_post_meta( $post->ID, '_la_statut', true );
@@ -300,6 +391,9 @@ class LA_Anniv_Admin {
 					);
 				}
 			}
+		}
+		if ( isset( $_POST['la_terrain'] ) ) {
+			update_post_meta( $id, '_la_terrain', sanitize_text_field( wp_unslash( $_POST['la_terrain'] ) ) );
 		}
 		if ( isset( $_POST['la_note'] ) ) {
 			update_post_meta( $id, '_la_note', sanitize_textarea_field( wp_unslash( $_POST['la_note'] ) ) );
@@ -365,6 +459,7 @@ class LA_Anniv_Admin {
 .la-st-attente{background:#FFF4D6;color:#8A5A00}.la-st-confirmee{background:#DFF7E8;color:#11663A}
 .la-st-annulee{background:#FDE2E2;color:#9B1C1C}.la-st-terminee{background:#ECEFF4;color:#4A5B7F}.la-st-exp{background:#FDE2E2;color:#9B1C1C}
 .la-allergie{color:#B45309;font-weight:600;cursor:help}
+.la-pt{font-size:12px;font-weight:600}.la-pt-ok{color:#11663A}.la-pt-todo{color:#8A5A00}.la-pt-bad{color:#9B1C1C}
 .la-detail th{width:180px;font-weight:600}
 .column-la_statut{width:180px}.column-la_total{width:110px}.column-la_enfants{width:80px}
 #la_anniv_next li{margin-bottom:8px}

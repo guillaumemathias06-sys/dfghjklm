@@ -47,12 +47,22 @@ class LA_Anniv_Rest {
 		$res = new WP_REST_Response(
 			array(
 				'mois'      => $mois,
-				'jours'     => (object) LA_Anniv_Bookings::month( $mois ),
+				'jours'     => (object) self::public_slots( LA_Anniv_Bookings::month( $mois ) ),
 				'prochaine' => LA_Anniv_Bookings::next_available(),
 			)
 		);
 		$res->header( 'Cache-Control', 'no-store' );
 		return $res;
+	}
+
+	/** Les identifiants de terrains restent internes. */
+	private static function public_slots( $days ) {
+		foreach ( $days as $d => $slots ) {
+			foreach ( $slots as $i => $sl ) {
+				unset( $days[ $d ][ $i ]['court'], $days[ $d ][ $i ]['court_extra'] );
+			}
+		}
+		return $days;
 	}
 
 	public static function reservation( WP_REST_Request $req ) {
