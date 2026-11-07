@@ -14,7 +14,11 @@ $O   = LA_Anniv_Settings::options();
 $img = LA_Anniv_Front::images();
 $ic  = array( 'LA_Anniv_Front', 'icon' );
 $max = (int) $s['enfants_max'];
-$dur = LA_Anniv_Settings::duree_txt();
+$dur  = LA_Anniv_Settings::duree_txt();
+$jeux = (int) $s['duree_terrain'];
+$gt   = (int) $s['duree_gouter'];
+$jtxt = LA_Anniv_Settings::duree_txt( $jeux );
+$gtxt = LA_Anniv_Settings::duree_txt( $gt );
 $e   = function ( $n ) {
 	return esc_html( LA_Anniv_Settings::euros( $n ) );
 };
@@ -34,9 +38,9 @@ $tel_href = LA_Anniv_Settings::tel_href();
     <nav class="crumbs" aria-label="Fil d'Ariane"><a href="<?php echo esc_url( home_url( '/' ) ); ?>">Accueil</a> › Anniversaires</nav>
     <p class="eyebrow" data-r>Anniversaires enfants · <?php echo (int) $s['age_min']; ?>–<?php echo (int) $s['age_max']; ?> ans · La Gaude</p>
     <h1 data-r style="--d:.06s">Un anniversaire <em>foot ou défis</em> aux Acacias</h1>
-    <p class="lead" data-r style="--d:.12s"><?php echo esc_html( $dur ); ?> de fête sur nos terrains, un animateur rien que pour le groupe et un vrai moment de star pour votre enfant. Vous arrivez, on s’occupe du reste.</p>
+    <p class="lead" data-r style="--d:.12s"><?php echo esc_html( $jtxt ); ?> de foot ou de jeux sur nos terrains avec un animateur rien que pour le groupe, puis <?php echo esc_html( $gtxt ); ?> de goûter. Un vrai moment de star pour votre enfant&nbsp;: vous arrivez, on s’occupe du reste.</p>
     <div class="an-chips" data-r style="--d:.16s">
-      <span><?php echo $ic( 'clock' ); // phpcs:ignore ?><?php echo esc_html( $dur ); ?> de fête</span>
+      <span><?php echo $ic( 'clock' ); // phpcs:ignore ?><?php echo esc_html( $jtxt ); ?> de jeux + <?php echo esc_html( $gtxt ); ?> de goûter</span>
       <span><?php echo $ic( 'kids' ); // phpcs:ignore ?>Jusqu’à <?php echo (int) $max; ?> enfants</span>
       <span><?php echo $ic( 'whistle' ); // phpcs:ignore ?>Animateur dédié</span>
     </div>
@@ -49,7 +53,7 @@ $tel_href = LA_Anniv_Settings::tel_href();
 </div>
 
 <div class="pg-facts">
-  <div class="pg-fact" data-r><b class="fn"><?php echo esc_html( $dur ); ?></b><span>de fête, goûter compris</span></div>
+  <div class="pg-fact" data-r><b class="fn"><?php echo esc_html( $jtxt ); ?></b><span>de foot ou d’activités, puis <?php echo esc_html( $gtxt ); ?> de goûter</span></div>
   <div class="pg-fact" data-r style="--d:.07s"><b class="fn"><?php echo (int) $max; ?></b><span>enfants maximum, enfant fêté inclus</span></div>
   <div class="pg-fact" data-r style="--d:.14s"><b class="fn">2</b><span>univers : Foot party ou Jeux &amp; défis</span></div>
 </div>
@@ -116,11 +120,12 @@ $tel_href = LA_Anniv_Settings::tel_href();
         <tbody>
           <?php
           $rows = array(
-            array( 'Terrain réservé et matériel', 1, 1 ),
+            array( $jtxt . ' de jeux sur un terrain réservé, avec le matériel', 1, 1 ),
+            array( $gtxt . ' de goûter à l’espace goûter', 1, 1 ),
             array( 'Animateur dédié au groupe', 1, 1 ),
             array( 'Programme Foot party ou Jeux & défis', 1, 1 ),
             array( 'Eau pendant les activités', 1, 1 ),
-            array( 'Espace goûter et vaisselle', 1, 1 ),
+            array( 'Vaisselle de l’espace goûter', 1, 1 ),
             array( 'Invitation numérique à partager', 1, 1 ),
             array( 'Souvenir pour l’enfant fêté', 1, 1 ),
             array( 'Mise en place et rangement', 1, 1 ),
@@ -145,12 +150,12 @@ $tel_href = LA_Anniv_Settings::tel_href();
   <div class="wrap pg-split an-split">
     <div>
       <p class="eyebrow" data-r>Le déroulé</p>
-      <h2 class="h2" data-r style="--d:.06s;margin:14px 0 26px"><?php echo 120 === (int) $s['duree'] ? 'Deux heures' : esc_html( $dur ); ?> bien rythmées</h2>
+      <h2 class="h2" data-r style="--d:.06s;margin:14px 0 26px"><?php echo esc_html( $dur ); ?> bien rythmées</h2>
       <ol class="an-time">
         <li data-r><span class="t">0 – 10 min</span><div><b>Accueil et équipes</b><span>Les prénoms, les règles du jeu et la composition des équipes.</span></div></li>
-        <li data-r style="--d:.06s"><span class="t">10 – <?php echo (int) $s['duree'] - 45; ?> min</span><div><b>Jeux et défis</b><span>Ateliers et matchs avec l’animateur, pauses hydratation comprises.</span></div></li>
-        <li data-r style="--d:.12s"><span class="t"><?php echo (int) $s['duree'] - 45; ?> – <?php echo (int) $s['duree'] - 30; ?> min</span><div><b>Grande finale</b><span>Le grand moment, lancé par l’enfant fêté, puis la célébration.</span></div></li>
-        <li data-r style="--d:.18s"><span class="t"><?php echo (int) $s['duree'] - 30; ?> – <?php echo (int) $s['duree']; ?> min</span><div><b>Goûter et bougies</b><span>À l’espace goûter, puis départ des invités avec leurs parents.</span></div></li>
+        <li data-r style="--d:.06s"><span class="t">10 – <?php echo (int) $jeux - 15; ?> min</span><div><b>Jeux et défis</b><span>Ateliers et matchs avec l’animateur, pauses hydratation comprises.</span></div></li>
+        <li data-r style="--d:.12s"><span class="t"><?php echo (int) $jeux - 15; ?> – <?php echo (int) $jeux; ?> min</span><div><b>Grande finale</b><span>Le grand moment, lancé par l’enfant fêté, puis la célébration.</span></div></li>
+        <li data-r style="--d:.18s"><span class="t"><?php echo (int) $jeux; ?> – <?php echo (int) $jeux + $gt; ?> min</span><div><b>Goûter et bougies</b><span>À l’espace goûter, puis départ des invités avec leurs parents.</span></div></li>
       </ol>
     </div>
     <div class="an-star" data-r style="--d:.1s">

@@ -37,7 +37,8 @@ class LA_Anniv_Settings {
 			'enfants_max'       => 12,
 			'age_min'           => 6,
 			'age_max'           => 12,
-			'duree'             => 120,
+			'duree_terrain'     => 60,
+			'duree_gouter'      => 30,
 			// Réservation.
 			'acompte'           => 50,
 			'fetes_par_creneau' => 1,
@@ -48,10 +49,10 @@ class LA_Anniv_Settings {
 				0 => '10:00, 14:00',
 				1 => '',
 				2 => '',
-				3 => '14:00, 16:30',
+				3 => '14:00, 16:00',
 				4 => '',
 				5 => '',
-				6 => '10:00, 14:00, 16:30',
+				6 => '10:00, 14:00, 16:00',
 			),
 			'dates_bloquees'    => '',
 			// Options.
@@ -93,6 +94,8 @@ class LA_Anniv_Settings {
 		if ( null === $cache ) {
 			$saved = get_option( self::OPTION, array() );
 			$cache = wp_parse_args( is_array( $saved ) ? $saved : array(), self::defaults() );
+			// Durée totale de la fête = jeux sur le terrain + goûter.
+			$cache['duree'] = max( 30, (int) $cache['duree_terrain'] ) + max( 0, (int) $cache['duree_gouter'] );
 			$cache['texte_meteo'] = str_replace( "'", '’', (string) $cache['texte_meteo'] );
 			if ( ! is_array( $cache['creneaux'] ) ) {
 				$cache['creneaux'] = self::defaults()['creneaux'];
@@ -118,11 +121,12 @@ class LA_Anniv_Settings {
 				'badge'   => 'Recommandé',
 				'accroche'=> 'On s’occupe de tout, goûter compris. Vous profitez.',
 				'inclus'  => array(
-					'2 h de fête sur un terrain réservé',
+					self::duree_txt( (int) $s['duree_terrain'] ) . ' de foot ou d’activités sur un terrain réservé',
+					self::duree_txt( (int) $s['duree_gouter'] ) . ' de goûter à l’espace goûter',
 					'Animateur dédié au groupe',
 					'Programme Foot party ou Jeux & défis',
 					'Gâteau, bougies, boissons et bonbons',
-					'Espace goûter, vaisselle, mise en place et rangement',
+					'Vaisselle, mise en place et rangement',
 					'Invitation numérique à partager',
 					'Souvenir pour l’enfant fêté',
 				),
@@ -134,10 +138,11 @@ class LA_Anniv_Settings {
 				'badge'   => '',
 				'accroche'=> 'L’animation et l’espace goûter. Vous apportez le goûter.',
 				'inclus'  => array(
-					'2 h de fête sur un terrain réservé',
+					self::duree_txt( (int) $s['duree_terrain'] ) . ' de foot ou d’activités sur un terrain réservé',
+					self::duree_txt( (int) $s['duree_gouter'] ) . ' de goûter à l’espace goûter',
 					'Animateur dédié au groupe',
 					'Programme Foot party ou Jeux & défis',
-					'Espace goûter et vaisselle',
+					'Vaisselle de l’espace goûter',
 					'Invitation numérique à partager',
 					'Souvenir pour l’enfant fêté',
 				),
@@ -184,7 +189,7 @@ class LA_Anniv_Settings {
 			'pizza'  => array(
 				'id'    => 'pizza',
 				'nom'   => 'Repas pizza des enfants',
-				'desc'  => sprintf( 'Pizzas du snack du club, pour les fêtes dont le goûter a lieu entre %s et %s.', self::h( $s['pizza_debut'] ), self::h( $s['pizza_fin'] ) ),
+				'desc'  => sprintf( 'Pizzas du snack du club, pour les fêtes dont le goûter commence entre %s et %s.', self::h( $s['pizza_debut'] ), self::h( $s['pizza_fin'] ) ),
 				'prix'  => (float) $s['opt_pizza'],
 				'unite' => 'pizza',
 				'type'  => 'qte',
@@ -208,7 +213,7 @@ class LA_Anniv_Settings {
 			'extra'  => array(
 				'id'    => 'extra',
 				'nom'   => '30 minutes de jeux supplémentaires',
-				'desc'  => 'La fête dure ' . self::duree_txt( (int) $s['duree'] + 30 ) . ' au lieu de ' . self::duree_txt( (int) $s['duree'] ) . '. Selon la disponibilité du terrain.',
+				'desc'  => self::duree_txt( (int) $s['duree_terrain'] + 30 ) . ' de jeux au lieu de ' . self::duree_txt( (int) $s['duree_terrain'] ) . ', avant le goûter. Selon la disponibilité du terrain.',
 				'prix'  => (float) $s['opt_extra'],
 				'unite' => 'groupe',
 				'type'  => 'case',
@@ -255,7 +260,7 @@ class LA_Anniv_Settings {
 		return $parts ? implode( ', ', $parts ) . ' et ' . $last : $last;
 	}
 
-	/** Durée lisible : 120 → « 2 h », 150 → « 2 h 30 ». */
+	/** Durée lisible : 60 → « 1 h », 90 → « 1 h 30 », 30 → « 30 min ». */
 	public static function duree_txt( $min = null ) {
 		$min = null === $min ? (int) self::get( 'duree' ) : (int) $min;
 		$h   = intdiv( $min, 60 );
@@ -297,13 +302,13 @@ class LA_Anniv_Settings {
 		foreach ( $num as $k ) {
 			$out[ $k ] = isset( $in[ $k ] ) ? max( 0, (float) str_replace( ',', '.', $in[ $k ] ) ) : $d[ $k ];
 		}
-		$int = array( 'enfants_min', 'enfants_max', 'age_min', 'age_max', 'duree', 'fetes_par_creneau', 'delai_min', 'horizon', 'expiration_h' );
+		$int = array( 'enfants_min', 'enfants_max', 'age_min', 'age_max', 'duree_terrain', 'duree_gouter', 'fetes_par_creneau', 'delai_min', 'horizon', 'expiration_h' );
 		foreach ( $int as $k ) {
 			$out[ $k ] = isset( $in[ $k ] ) ? max( 0, (int) $in[ $k ] ) : $d[ $k ];
 		}
 		$out['enfants_min']       = max( 1, $out['enfants_min'] );
 		$out['enfants_max']       = max( $out['enfants_min'], $out['enfants_max'] );
-		$out['duree']             = max( 30, $out['duree'] );
+		$out['duree_terrain']     = max( 30, $out['duree_terrain'] );
 		$out['fetes_par_creneau'] = max( 1, $out['fetes_par_creneau'] );
 		$out['horizon']           = max( 7, $out['horizon'] );
 
@@ -480,7 +485,8 @@ class LA_Anniv_Settings {
 					$field( 'enfants_max', 'Nombre d’enfants inclus (maximum)', 'number', 'Enfant fêté inclus. Au-delà, le tunnel invite à appeler le club.', 'min="1"' );
 					$field( 'age_min', 'Âge minimum', 'number' );
 					$field( 'age_max', 'Âge maximum', 'number' );
-					$field( 'duree', 'Durée de la fête (minutes)', 'number', '', 'min="30" step="15"' );
+					$field( 'duree_terrain', 'Durée des jeux sur le terrain (minutes)', 'number', 'Foot party ou Jeux & défis. Seul ce temps bloque le terrain dans Playtomic.', 'min="30" step="15"' );
+					$field( 'duree_gouter', 'Durée du goûter (minutes)', 'number', 'À l’espace goûter, après les jeux. La fête dure au total jeux + goûter.', 'min="0" step="15"' );
 					?>
 				</table>
 
@@ -513,7 +519,7 @@ class LA_Anniv_Settings {
 					<?php
 					$field( 'opt_pizza', 'Repas pizza (€ / pizza)', 'number', '', 'step="0.5" min="0"' );
 					$field( 'pizza_debut', 'Pizza : goûter entre', 'text', 'Format HH:MM', 'style="width:90px"' );
-					$field( 'pizza_fin', '… et', 'text', 'L’option n’est proposée que si le goûter (fin de fête – 30 min) tombe dans cette plage.', 'style="width:90px"' );
+					$field( 'pizza_fin', '… et', 'text', 'L’option n’est proposée que si le goûter (juste après les jeux) commence dans cette plage.', 'style="width:90px"' );
 					$field( 'opt_ballon', 'Ballon souvenir signé (€)', 'number', '', 'step="0.5" min="0"' );
 					$field( 'opt_sachet', 'Sachet cadeau (€ / enfant)', 'number', '', 'step="0.5" min="0"' );
 					$field( 'opt_extra', '30 min supplémentaires (€ / groupe)', 'number', '', 'step="0.5" min="0"' );

@@ -155,7 +155,9 @@ class LA_Anniv_Bookings {
 			$date  = get_post_meta( $id, '_la_date', true );
 			$start = self::to_min( get_post_meta( $id, '_la_heure', true ) );
 			$end   = $start + (int) get_post_meta( $id, '_la_duree', true );
-			$out[ $date ][] = array( $start, $end, (string) get_post_meta( $id, '_la_terrain', true ) );
+			$dt    = (int) get_post_meta( $id, '_la_duree_terrain', true );
+			// [début, fin de la fête, terrain, fin de l'occupation du terrain]
+			$out[ $date ][] = array( $start, $end, (string) get_post_meta( $id, '_la_terrain', true ), $dt ? $start + $dt : $end );
 		}
 		return $out;
 	}
@@ -175,7 +177,7 @@ class LA_Anniv_Bookings {
 			}
 			if ( ! $busy ) {
 				foreach ( $local as $r ) {
-					if ( ! empty( $r[2] ) && $r[2] === $c && $r[0] < $e && $s < $r[1] ) {
+					if ( ! empty( $r[2] ) && $r[2] === $c && $r[0] < $e && $s < ( isset( $r[3] ) ? $r[3] : $r[1] ) ) {
 						$busy = true;
 						break;
 					}
@@ -240,7 +242,8 @@ class LA_Anniv_Bookings {
 		}
 		$ranges = isset( $occ[ $date ] ) ? $occ[ $date ] : array();
 		$cap    = max( 1, (int) $s['fetes_par_creneau'] );
-		$duree  = (int) $s['duree'];
+		$duree  = (int) $s['duree'];          // fête complète (jeux + goûter) : occupe l'animateur
+		$jeux   = (int) $s['duree_terrain'];  // jeux : occupent le terrain
 		$p_deb  = self::to_min( $s['pizza_debut'] );
 		$p_fin  = self::to_min( $s['pizza_fin'] );
 		$out    = array();
@@ -253,18 +256,19 @@ class LA_Anniv_Bookings {
 			$court_x = '';
 			if ( $pt_ok ) {
 				// Un terrain doit être libre dans Playtomic, marge d'installation comprise.
-				$court   = $ok ? self::free_court( $courts, $pt_day, $ranges, $start - $marge, $start + $duree + $marge ) : '';
+				$court   = $ok ? self::free_court( $courts, $pt_day, $ranges, $start - $marge, $start + $jeux + $marge ) : '';
 				$ok      = '' !== $court;
-				$court_x = $ok ? self::free_court( $courts, $pt_day, $ranges, $start - $marge, $start + $duree + 30 + $marge ) : '';
+				$court_x = $ok ? self::free_court( $courts, $pt_day, $ranges, $start - $marge, $start + $jeux + 30 + $marge ) : '';
 				$extraok = $extraok && '' !== $court_x;
 			}
-			$gouter = $start + $duree - 30;
+			$gouter = $start + $jeux; // le goûter commence après les jeux
 			$out[]  = array(
 				'h'           => $t,
 				'fin'         => self::to_hhmm( $start + $duree ),
 				'ok'          => $ok,
 				'extra'       => $extraok,
 				'pizza'       => $gouter >= $p_deb && $gouter <= $p_fin,
+				'pizza_extra' => $gouter + 30 >= $p_deb && $gouter + 30 <= $p_fin, // goûter décalé par les 30 min de jeux en plus
 				'court'       => $court,
 				'court_extra' => $court_x,
 			);
@@ -437,7 +441,7 @@ class LA_Anniv_Bookings {
 		}
 
 		$clean_opts = array(
-			'pizza'  => ( ! empty( $slot['pizza'] ) && ! empty( $opts['pizza'] ) ) ? min( 40, max( 0, (int) $opts['pizza'] ) ) : 0,
+			'pizza'  => ( ! empty( $slot[ $extra ? 'pizza_extra' : 'pizza' ] ) && ! empty( $opts['pizza'] ) ) ? min( 40, max( 0, (int) $opts['pizza'] ) ) : 0,
 			'ballon' => ! empty( $opts['ballon'] ) ? 1 : 0,
 			'sachet' => ! empty( $opts['sachet'] ) ? 1 : 0,
 			'extra'  => $extra ? 1 : 0,
@@ -462,6 +466,8 @@ class LA_Anniv_Bookings {
 		);
 		$data['prix'] = self::price( $data );
 		$duree        = (int) $s['duree'] + ( $extra ? 30 : 0 );
+		$jeux         = (int) $s['duree_terrain'] + ( $extra ? 30 : 0 );
+		$data['fin_jeux'] = self::to_hhmm( self::to_min( $heure ) + $jeux );
 		$data['fin']  = self::to_hhmm( self::to_min( $heure ) + $duree );
 		$data['terrain']     = $slot ? ( $extra ? $slot['court_extra'] : $slot['court'] ) : '';
 		$data['terrain_nom'] = $data['terrain'] ? LA_Anniv_Playtomic::court_name( $data['terrain'] ) : '';
@@ -484,6 +490,7 @@ class LA_Anniv_Bookings {
 		update_post_meta( $id, '_la_date', $date );
 		update_post_meta( $id, '_la_heure', $heure );
 		update_post_meta( $id, '_la_duree', $duree );
+		update_post_meta( $id, '_la_duree_terrain', $jeux );
 		update_post_meta( $id, '_la_statut', 'attente' );
 		update_post_meta( $id, '_la_cree', time() );
 		update_post_meta( $id, '_la_ref', $data['ref'] );
@@ -496,7 +503,7 @@ class LA_Anniv_Bookings {
 		$start  = self::to_min( $heure );
 		$same_court = 0;
 		foreach ( $ranges as $r ) {
-			if ( $data['terrain'] && ! empty( $r[2] ) && $r[2] === $data['terrain'] && $r[0] < $start + $duree && $start < $r[1] ) {
+			if ( $data['terrain'] && ! empty( $r[2] ) && $r[2] === $data['terrain'] && $r[0] < $start + $jeux && $start < ( isset( $r[3] ) ? $r[3] : $r[1] ) ) {
 				$same_court++;
 			}
 		}
@@ -578,6 +585,9 @@ class LA_Anniv_Bookings {
 		$h .= $row( 'Référence', $d['ref'] );
 		$h .= $row( 'Date', ucfirst( self::date_fr( $d['date'] ) ) );
 		$h .= $row( 'Horaire', LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] ) );
+		if ( ! empty( $d['fin_jeux'] ) ) {
+			$h .= $row( 'Déroulé', 'Jeux ' . LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin_jeux'] ) . ', goûter ' . LA_Anniv_Settings::h( $d['fin_jeux'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] ) );
+		}
 		$h .= $row( 'Enfant fêté', $d['prenom_enfant'] . ', ' . $d['age'] . ' ans' );
 		$h .= $row( 'Nombre d’enfants', $d['enfants'] . ' (enfant fêté inclus)' );
 		$h .= $row( 'Formule', isset( $f[ $d['formule'] ] ) ? $f[ $d['formule'] ]['nom'] : $d['formule'] );
@@ -618,7 +628,7 @@ class LA_Anniv_Bookings {
 		if ( ! isset( $d['pt_verifie'] ) || null === $d['pt_verifie'] ) {
 			return '';
 		}
-		$when = self::date_fr( $d['date'] ) . ', ' . LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] );
+		$when = self::date_fr( $d['date'] ) . ', ' . LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( ! empty( $d['fin_jeux'] ) ? $d['fin_jeux'] : $d['fin'] );
 		if ( ! $d['pt_verifie'] ) {
 			return '<p style="background:#FDE2E2;color:#9B1C1C;border-radius:12px;padding:12px 14px"><strong>⚠ Playtomic n’a pas pu être consulté</strong> au moment de la demande. Vérifiez dans Playtomic Manager qu’un terrain de foot est libre le ' . esc_html( $when ) . ', puis bloquez-le.</p>';
 		}

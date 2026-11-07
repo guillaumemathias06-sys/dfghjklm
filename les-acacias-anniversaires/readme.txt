@@ -1,5 +1,5 @@
 === Les Acacias – Anniversaires enfants ===
-Version : 1.2.2
+Version : 1.3.0
 Nécessite : WordPress 6.0, PHP 7.4, et le plugin « les-acacias-site » (design du site)
 
 Pages « Anniversaires » et tunnel de réservation en 6 étapes aux couleurs du site Les Acacias.
@@ -15,13 +15,21 @@ Pages « Anniversaires » et tunnel de réservation en 6 étapes aux couleurs du
 4. Ajoutez un lien « Anniversaires » vers /anniversaires/ dans le menu du site principal
    (plugin les-acacias-site) et sur la page « Foot à 5 ».
 
+== Format de la fête ==
+
+1 h de foot ou d'activités sur le terrain, puis 30 min de goûter à l'espace goûter (1 h 30 au total).
+Les deux durées se règlent séparément (Réglages › Formules). Seules les minutes de jeux occupent
+le terrain : la vérification Playtomic et le rappel de blocage portent sur ce temps-là ;
+la fête complète (jeux + goûter) compte pour la disponibilité de l'animateur.
+Option « 30 minutes de jeux supplémentaires » : 1 h 30 de jeux, le goûter est décalé d'autant.
+
 == Le tunnel ==
 
 1. Formule : Tout compris (290 €, mise en avant) ou Essentiel (250 €)
 2. Univers : Foot party ou Jeux & défis des Acacias
 3. Date : calendrier des disponibilités, créneaux libres ou complets
 4. Invités : prénom et âge de l'enfant fêté, nombre d'enfants (6 à 12)
-5. Options : pizza (12 €/pizza, si le goûter tombe entre 11h et 15h), ballon signé (20 €),
+5. Options : pizza (12 €/pizza, si le goûter commence entre 11h et 15h), ballon signé (20 €),
    sachets cadeaux (6 €/enfant), 30 min supplémentaires (40 €, si le terrain est libre)
 6. Coordonnées, allergies, acceptation de la règle météo et de l'acompte
 

@@ -183,7 +183,7 @@ class LA_Anniv_Front {
 			if ( 'tunnel' === self::current() ) {
 				$desc = 'Réservez l’anniversaire de votre enfant aux Acacias : choisissez la formule, l’univers Foot ou Défis, la date et les options en quelques minutes.';
 			} else {
-				$desc = sprintf( 'Anniversaires enfants aux Acacias, à La Gaude : 2 h de fête Foot ou Jeux & défis avec un animateur dédié, jusqu’à %d enfants. Formules à %s et %s.', (int) $s['enfants_max'], LA_Anniv_Settings::euros( $s['prix_essentiel'] ), LA_Anniv_Settings::euros( $s['prix_complet'] ) );
+				$desc = sprintf( 'Anniversaires enfants aux Acacias, à La Gaude : 1 h de foot ou de jeux & défis avec un animateur dédié, puis 30 min de goûter, jusqu’à %d enfants. Formules à %s et %s.', (int) $s['enfants_max'], LA_Anniv_Settings::euros( $s['prix_essentiel'] ), LA_Anniv_Settings::euros( $s['prix_complet'] ) );
 			}
 			printf( '<meta name="description" content="%s">' . "\n", esc_attr( $desc ) );
 		}
@@ -274,6 +274,8 @@ class LA_Anniv_Front {
 			'horizon'   => (int) $s['horizon'],
 			'jours'     => LA_Anniv_Settings::jours_txt(),
 			'dureeTxt'  => LA_Anniv_Settings::duree_txt(),
+			'jeuxTxt'   => LA_Anniv_Settings::duree_txt( (int) $s['duree_terrain'] ),
+			'gouterTxt' => LA_Anniv_Settings::duree_txt( (int) $s['duree_gouter'] ),
 			'acompte'   => (float) $s['acompte'],
 			'expiration'=> (int) $s['expiration_h'],
 			'meteo'     => $s['texte_meteo'],

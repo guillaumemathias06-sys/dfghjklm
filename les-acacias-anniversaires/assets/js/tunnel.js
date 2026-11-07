@@ -264,7 +264,7 @@
       h += '<button type="button" class="tn-slot' + (on ? ' on' : '') + '" data-slot="' + esc(s.h) + '" role="radio" aria-checked="' + on + '"' + (s.ok ? '' : ' disabled') + '>' +
         '<b>' + hh(s.h) + ' – ' + hh(s.fin) + '</b><span>' + (s.ok ? (s.pizza ? 'Option pizza possible' : 'Disponible') : 'Complet') + '</span></button>';
     });
-    return h + '</div><p class="tn-muted tn-small">Accueil des invités 10 minutes avant. Durée&nbsp;: ' + esc(C.dureeTxt) + (st.options.extra ? ' + 30 min' : '') + '.</p>';
+    return h + '</div><p class="tn-muted tn-small">' + esc(st.options.extra ? 'Jeux ' + C.jeuxTxt + ' + 30 min' : C.jeuxTxt + ' de jeux') + ', puis ' + esc(C.gouterTxt) + ' de goûter. Accueil des invités 10 minutes avant.</p>';
   };
 
   var drawCal = function () {
@@ -309,8 +309,11 @@
     html += '<div class="tn-opts">';
     C.options.forEach(function (o) {
       var val = st.options[o.id] || 0;
-      var dis = (o.id === 'pizza' && !slot.pizza) || (o.id === 'extra' && !slot.extra);
-      var why = o.id === 'pizza' ? 'Proposé pour les fêtes dont le goûter a lieu entre ' + C.pizza[0] + ' et ' + C.pizza[1] + '. Choisissez un créneau du matin pour en profiter.' : 'Le terrain est déjà réservé juste après votre créneau.';
+      var pizzaOk = st.options.extra ? slot.pizza_extra : slot.pizza;
+      var dis = (o.id === 'pizza' && !pizzaOk) || (o.id === 'extra' && !slot.extra);
+      var why = o.id === 'pizza'
+        ? (slot.pizza && st.options.extra ? 'Avec les 30 minutes de jeux en plus, le goûter commence après ' + C.pizza[1] + ' : la pizza n’est plus possible.' : 'Proposé pour les fêtes dont le goûter commence entre ' + C.pizza[0] + ' et ' + C.pizza[1] + '. Choisissez un créneau plus tôt pour en profiter.')
+        : 'Le terrain est déjà réservé juste après votre créneau.';
       var unit = o.unite ? ' <i>/ ' + esc(o.unite) + '</i>' : '';
       var ctrl;
       if (o.type === 'qte') {
@@ -561,6 +564,7 @@
       } else {
         st.options[id] = st.options[id] ? 0 : 1;
       }
+      fixOptions();
       render();
     }
   });
@@ -585,7 +589,7 @@
   // Un créneau sans pizza ou sans prolongation possible retire l'option correspondante.
   var fixOptions = function () {
     var s = slotOf();
-    if (!s || !s.pizza) { st.options.pizza = 0; }
+    if (!s || !(st.options.extra ? s.pizza_extra : s.pizza)) { st.options.pizza = 0; }
     if (!s || !s.extra) { st.options.extra = 0; }
   };
 

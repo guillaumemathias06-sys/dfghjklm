@@ -148,7 +148,7 @@ class LA_Anniv_Admin {
 			return $out;
 		}
 		$s     = LA_Anniv_Bookings::to_min( $d['heure'] );
-		$e     = LA_Anniv_Bookings::to_min( $d['fin'] );
+		$e     = LA_Anniv_Bookings::to_min( ! empty( $d['fin_jeux'] ) ? $d['fin_jeux'] : $d['fin'] ); // le terrain n'est occupé que pendant les jeux
 		$state = 'a_bloquer';
 		foreach ( isset( $pt[ $d['date'] ][ $court ] ) ? $pt[ $d['date'] ][ $court ] : array() as $r ) {
 			if ( $r[0] <= $s && $r[1] >= $e ) {
