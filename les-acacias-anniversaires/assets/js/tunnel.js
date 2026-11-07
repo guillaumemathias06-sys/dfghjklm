@@ -207,7 +207,7 @@
   };
 
   V.date = function () {
-    return head(3, 'Choisissez la date', 'Les fêtes ont lieu le mercredi et le week-end. Les créneaux affichés sont libres.') +
+    return head(3, 'Choisissez la date', (C.jours ? 'Les fêtes ont lieu ' + esc(C.jours) + '. ' : '') + 'Les créneaux affichés sont libres.') +
       '<div class="tn-date">' +
       '<div class="tn-cal" id="tnCal"><p class="tn-loading">Chargement des disponibilités…</p></div>' +
       '<div class="tn-slots" id="tnSlots"></div>' +
@@ -262,7 +262,7 @@
       h += '<button type="button" class="tn-slot' + (on ? ' on' : '') + '" data-slot="' + esc(s.h) + '" role="radio" aria-checked="' + on + '"' + (s.ok ? '' : ' disabled') + '>' +
         '<b>' + hh(s.h) + ' – ' + hh(s.fin) + '</b><span>' + (s.ok ? (s.pizza ? 'Option pizza possible' : 'Disponible') : 'Complet') + '</span></button>';
     });
-    return h + '</div><p class="tn-muted tn-small">Accueil des invités 10 minutes avant. Durée&nbsp;: ' + Math.round(C.duree / 60 * 10) / 10 + ' h' + '.</p>';
+    return h + '</div><p class="tn-muted tn-small">Accueil des invités 10 minutes avant. Durée&nbsp;: ' + esc(C.dureeTxt) + (st.options.extra ? ' + 30 min' : '') + '.</p>';
   };
 
   var drawCal = function () {
@@ -430,7 +430,7 @@
     readFields();
     var id = STEPS[st.step].id, errs = [], first = null;
     $$('.bad', panel).forEach(function (e) { e.classList.remove('bad'); });
-    var need = function (cond, msg, field) { if (!cond) { errs.push(msg); if (field) { first = first || mark(field); } } };
+    var need = function (cond, msg, field) { if (!cond) { errs.push(msg); if (field) { mark(field); first = first || field; } } };
     if (id === 'formule') { need(!!byId(C.formules, st.formule), 'Choisissez une formule.'); }
     if (id === 'univers') { need(!!byId(C.univers, st.univers), 'Choisissez un univers pour la fête.'); }
     if (id === 'date') {
@@ -490,9 +490,10 @@
     if (t.name === 'univers') { st.univers = t.value; render(); }
     if (t.id === 'fAge') { st.age = parseInt(t.value, 10) || ''; }
     if (t.id === 'cOk') { st.accepte = t.checked; }
+    if (t.closest && t.closest('.tn-form')) { readFields(); save(); }
   });
   app.addEventListener('input', function (e) {
-    if (e.target.id === 'fPrenom') { st.prenom = e.target.value.trim(); save(); }
+    if (e.target.closest('.tn-form')) { readFields(); save(); }
     var c = e.target.closest('.tn-f.bad, .tn-check.bad'); if (c) { c.classList.remove('bad'); }
   });
 

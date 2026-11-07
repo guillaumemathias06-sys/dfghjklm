@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
-<a class="skip" href="#top" style="position:absolute;left:-9999px">Aller au contenu</a>
+<a class="skip" href="#top">Aller au contenu</a>
 <?php echo LA_Anniv_Front::header_html(); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 <main id="top" class="pg la-anniv">
 <?php

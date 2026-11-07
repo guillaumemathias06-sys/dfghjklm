@@ -1470,6 +1470,8 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
 
 .la-anniv{background:var(--bg);color:var(--ink)}
 .la-anniv svg{flex:none}
+.skip{position:absolute!important;left:12px;top:-60px;z-index:100;background:#fff;color:#1C3FB0;font-weight:700;padding:10px 16px;border-radius:999px;text-decoration:none}
+.skip:focus{top:12px}
 .la-anniv .hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;overflow:hidden}
 .la-anniv .ph{min-height:220px}
 /* La feuille du site met les <label> en petites capitales : pas dans le tunnel. */
@@ -1625,7 +1627,7 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
 .tn-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:26px}
 .tn-choice{position:relative;display:flex;flex-direction:column;gap:10px;border:2px solid var(--line);border-radius:24px;padding:22px;cursor:pointer;transition:border-color .2s,background .2s,transform .3s var(--ease),box-shadow .3s}
 .tn-choice:hover{border-color:var(--sky);transform:translateY(-2px)}
-.tn-choice input{position:absolute;opacity:0;pointer-events:none}
+.tn-choice input{position:absolute;top:0;left:0;width:1px!important;height:1px!important;min-height:0!important;margin:0;padding:0;opacity:0;pointer-events:none}
 .tn-choice:focus-within{outline:3px solid #FFB000;outline-offset:3px}
 .tn-choice.on{border-color:var(--blue);background:color-mix(in srgb,var(--surface2) 55%,var(--surface));box-shadow:0 18px 40px -26px rgba(42,91,230,.8)}
 .tn-radio{position:absolute;top:20px;right:20px;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
@@ -1810,6 +1812,17 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
   body.la-anniv-tunnel{padding-bottom:84px}
   body.tn-done{padding-bottom:0}
 }
+@media(max-width:380px){
+  .tn-panel{padding:20px 14px}
+  .tn-cal-g{gap:3px}
+  .tn-cal-g .d{min-height:0;font-size:14px;border-radius:8px}
+  .tn-cal-g .dn{font-size:10px;letter-spacing:0}
+  .tn-cal-h b{font-size:19px}
+  .tn-slots{padding:14px}
+  .tn-slot{padding:10px 12px}
+  .tn-slot b{font-size:17px}
+  .tn-steps li>span,.tn-steps li>button{font-size:13px}
+}
 @media(max-width:560px){
   .tn-form{grid-template-columns:1fr}
   .tn-opt{grid-template-columns:auto minmax(0,1fr);gap:12px}
@@ -1885,7 +1898,7 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
   .ip-row{grid-template-columns:1fr}
 }
 </style></head><body class="wp-singular page-template-default page page-id-4 page-parent wp-embed-responsive wp-theme-twentytwentyone la-site la-anniv-page la-anniv-landing is-light-theme no-js singular">
-<a class="skip" href="#top" style="position:absolute;left:-9999px">Aller au contenu</a>
+<a class="skip" href="#top">Aller au contenu</a>
 <header class="hdr" id="hdr">
   <div class="hdr-in">
     <a class="logo" href="https://les-acacias-tennis-padel-foot.com/" aria-label="Les Acacias, accueil"><img class="mark" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAABIFBMVEX+/v4opbsOOVETQ1sXSmIvR1fT5+tth5UXnbUtrMEcoLcsV20llqyUp7K3xc3M1drm6exVdohLZ3YOKDRQtsisusMDKkQYWHAjO0vDy9GJm6ao2uNxxNMihJs5ZHjV2+Fme4iGzNiU0t15lqOotLsAGyscdo0ie5IaY3oki6K54ulGW2WcsbtpvMsqTWNGboEaMjyX1uHc8PQwssdFrsKirLQcbINbgpOFk5pkdHxecXx2kJ6AjpeKusYWhZ0Xi6NCVV1Hqbs7UVlJjqB4pbCEjqKt0tpfwNBhbXl/iaGorsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADcd+DoAAAAYHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAArJoq7AAAKyklEQVR42u1Zd3ejOhYXEiCEEB1TbIq7nTi9Tnv9vS3f/wPtlQAbO8mbmbPzx+45uSfjcZC49XeLFITe6Z3e6Z3+dyihVRXMvf+ajyuKYmG+fMw5D9yQk8p9601zNoljxjSN3ceT2dnrm8TlSBIOTjR1MUeC7qog4PzTmwJizbJsDci24f94dnu6xQ9HuKURFkfvEsIDTsUVcuceDt6235yCEK0l29IuTuzgI8kafuRHMVigPChQgLxQhDyoOD1+bXp2LOPetnsZdjz0dgB8lyI0xCjkIGFxWNHzQuzAhitR1YgiPjRvzCwtnoyHjM4mBzO0yQEmoLkhQtrMuWikn/Zx8Aj4J6CI1ijwCk45PrCb2MoblsaGQm5nIFZrl7Rx9/ASL5uC8jnF3qiYL/EoPEDIDZDYmRUFQdXcpFe9k0zWq6pYxdODjHFsxbA6m1h2a4QYYdo0Ro6pGOWXlIKEpNub8yQUPAx4Mi8Q9fyQ6n7LRDuhIxnjsTmFT1uz4i7CAoAy8i4DwYuAhgcTTMgBESJvjuZUQJSrHVeyx/aAt3RTJ2M8jPlEPgMJuUSOy0PXkMyLMACLsN/tutIBAh6VUKUB2ok2zEP+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" alt="" width="46" height="46">Les Acacias</a>
@@ -2149,7 +2162,7 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
       <p class="eyebrow" data-r>Infos pratiques</p>
       <h2 class="h2" data-r style="--d:.06s;margin:14px 0 18px">Une organisation qui rassure</h2>
       <div class="pg-feats an-feats">
-        <div class="pg-feat" data-r><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span><div><b>Et s’il pleut&nbsp;?</b><span>Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l&#039;anniversaire à une date de votre choix, sans frais. L&#039;acompte reste valable pour la nouvelle date.</span></div></div>
+        <div class="pg-feat" data-r><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span><div><b>Et s’il pleut&nbsp;?</b><span>Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l’anniversaire à une date de votre choix, sans frais. L’acompte reste valable pour la nouvelle date.</span></div></div>
         <div class="pg-feat" data-r style="--d:.06s"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span><div><b>Allergies</b><span>Signalez-les à la réservation&nbsp;: nous adaptons le goûter Tout compris ou vous prévenons des produits servis.</span></div></div>
         <div class="pg-feat" data-r style="--d:.12s"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-1a6 6 0 0 1 12 0v1"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 21v-.5a4.5 4.5 0 0 1 6-4.2"/></svg></span><div><b>Un parent sur place</b><span>Le parent organisateur reste au club pendant la fête. Les invités sont confiés et récupérés à l’accueil, à l’heure.</span></div></div>
         <div class="pg-feat" data-r style="--d:.18s"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><div><b>Quand&nbsp;?</b><span>Le mercredi et le week-end, sur des créneaux fixes. Réservez au moins 3 jours à l’avance.</span></div></div>
@@ -2190,7 +2203,7 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
       <details open><summary>À partir de quel âge&nbsp;?</summary><p>Nos anniversaires sont pensés pour les 6–12 ans, avec des jeux adaptés aux plus jeunes (6–8 ans) et aux plus grands (9–12 ans).</p></details>
       <details><summary>Combien d’enfants peuvent venir&nbsp;?</summary><p>Le forfait comprend jusqu’à 12 enfants, enfant fêté inclus. Pour un groupe plus grand, appelez-nous&nbsp;: nous étudions une organisation avec un deuxième animateur.</p></details>
       <details><summary>Faut-il savoir jouer au foot&nbsp;?</summary><p>Non. La Foot party s’adapte à tous les niveaux, et l’univers Jeux &amp; défis ne demande aucune pratique du foot&nbsp;: relais, parcours, adresse et coopération.</p></details>
-      <details><summary>Que se passe-t-il en cas de pluie&nbsp;?</summary><p>Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l&#039;anniversaire à une date de votre choix, sans frais. L&#039;acompte reste valable pour la nouvelle date.</p></details>
+      <details><summary>Que se passe-t-il en cas de pluie&nbsp;?</summary><p>Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l’anniversaire à une date de votre choix, sans frais. L’acompte reste valable pour la nouvelle date.</p></details>
       <details><summary>Comment se passe le paiement&nbsp;?</summary><p>Un acompte de 50 € confirme la réservation. Le solde se règle sur place, le jour de la fête.</p></details>
       <details><summary>Puis-je apporter mon propre gâteau&nbsp;?</summary><p>Oui, c’est le principe de la formule Essentiel à 250 €&nbsp;: nous fournissons l’espace goûter et la vaisselle, vous apportez gâteau, bougies, boissons et bonbons.</p></details>
     </div>

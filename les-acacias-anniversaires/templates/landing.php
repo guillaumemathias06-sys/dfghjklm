@@ -14,8 +14,7 @@ $O   = LA_Anniv_Settings::options();
 $img = LA_Anniv_Front::images();
 $ic  = array( 'LA_Anniv_Front', 'icon' );
 $max = (int) $s['enfants_max'];
-$h   = (int) $s['duree'] / 60;
-$dur = ( floor( $h ) == $h ) ? $h . ' h' : floor( $h ) . ' h ' . ( (int) $s['duree'] % 60 );
+$dur = LA_Anniv_Settings::duree_txt();
 $e   = function ( $n ) {
 	return esc_html( LA_Anniv_Settings::euros( $n ) );
 };
@@ -146,12 +145,12 @@ $tel_href = LA_Anniv_Settings::tel_href();
   <div class="wrap pg-split an-split">
     <div>
       <p class="eyebrow" data-r>Le déroulé</p>
-      <h2 class="h2" data-r style="--d:.06s;margin:14px 0 26px">Deux heures bien rythmées</h2>
+      <h2 class="h2" data-r style="--d:.06s;margin:14px 0 26px"><?php echo 120 === (int) $s['duree'] ? 'Deux heures' : esc_html( $dur ); ?> bien rythmées</h2>
       <ol class="an-time">
         <li data-r><span class="t">0 – 10 min</span><div><b>Accueil et équipes</b><span>Les prénoms, les règles du jeu et la composition des équipes.</span></div></li>
-        <li data-r style="--d:.06s"><span class="t">10 – 75 min</span><div><b>Jeux et défis</b><span>Ateliers et matchs avec l’animateur, pauses hydratation comprises.</span></div></li>
-        <li data-r style="--d:.12s"><span class="t">75 – 90 min</span><div><b>Grande finale</b><span>Le grand moment, lancé par l’enfant fêté, puis la célébration.</span></div></li>
-        <li data-r style="--d:.18s"><span class="t">90 – 120 min</span><div><b>Goûter et bougies</b><span>À l’espace goûter, puis départ des invités avec leurs parents.</span></div></li>
+        <li data-r style="--d:.06s"><span class="t">10 – <?php echo (int) $s['duree'] - 45; ?> min</span><div><b>Jeux et défis</b><span>Ateliers et matchs avec l’animateur, pauses hydratation comprises.</span></div></li>
+        <li data-r style="--d:.12s"><span class="t"><?php echo (int) $s['duree'] - 45; ?> – <?php echo (int) $s['duree'] - 30; ?> min</span><div><b>Grande finale</b><span>Le grand moment, lancé par l’enfant fêté, puis la célébration.</span></div></li>
+        <li data-r style="--d:.18s"><span class="t"><?php echo (int) $s['duree'] - 30; ?> – <?php echo (int) $s['duree']; ?> min</span><div><b>Goûter et bougies</b><span>À l’espace goûter, puis départ des invités avec leurs parents.</span></div></li>
       </ol>
     </div>
     <div class="an-star" data-r style="--d:.1s">
@@ -203,7 +202,7 @@ $tel_href = LA_Anniv_Settings::tel_href();
         <div class="pg-feat" data-r><span class="ck"><?php echo $ic( 'sun' ); // phpcs:ignore ?></span><div><b>Et s’il pleut&nbsp;?</b><span><?php echo esc_html( $s['texte_meteo'] ); ?></span></div></div>
         <div class="pg-feat" data-r style="--d:.06s"><span class="ck"><?php echo $ic( 'shield' ); // phpcs:ignore ?></span><div><b>Allergies</b><span>Signalez-les à la réservation&nbsp;: nous adaptons le goûter Tout compris ou vous prévenons des produits servis.</span></div></div>
         <div class="pg-feat" data-r style="--d:.12s"><span class="ck"><?php echo $ic( 'kids' ); // phpcs:ignore ?></span><div><b>Un parent sur place</b><span>Le parent organisateur reste au club pendant la fête. Les invités sont confiés et récupérés à l’accueil, à l’heure.</span></div></div>
-        <div class="pg-feat" data-r style="--d:.18s"><span class="ck"><?php echo $ic( 'calendar' ); // phpcs:ignore ?></span><div><b>Quand&nbsp;?</b><span>Le mercredi et le week-end, sur des créneaux fixes. Réservez au moins <?php echo (int) $s['delai_min']; ?> jours à l’avance.</span></div></div>
+        <div class="pg-feat" data-r style="--d:.18s"><span class="ck"><?php echo $ic( 'calendar' ); // phpcs:ignore ?></span><div><b>Quand&nbsp;?</b><span><?php echo esc_html( ucfirst( LA_Anniv_Settings::jours_txt() ) ); ?>, sur des créneaux fixes. Réservez au moins <?php echo (int) $s['delai_min']; ?> jours à l’avance.</span></div></div>
       </div>
     </div>
     <div class="duo" data-r style="--d:.1s">

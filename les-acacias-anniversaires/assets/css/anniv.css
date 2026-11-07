@@ -20,6 +20,8 @@
 
 .la-anniv{background:var(--bg);color:var(--ink)}
 .la-anniv svg{flex:none}
+.skip{position:absolute!important;left:12px;top:-60px;z-index:100;background:#fff;color:#1C3FB0;font-weight:700;padding:10px 16px;border-radius:999px;text-decoration:none}
+.skip:focus{top:12px}
 .la-anniv .hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;overflow:hidden}
 .la-anniv .ph{min-height:220px}
 /* La feuille du site met les <label> en petites capitales : pas dans le tunnel. */
@@ -175,7 +177,7 @@
 .tn-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:26px}
 .tn-choice{position:relative;display:flex;flex-direction:column;gap:10px;border:2px solid var(--line);border-radius:24px;padding:22px;cursor:pointer;transition:border-color .2s,background .2s,transform .3s var(--ease),box-shadow .3s}
 .tn-choice:hover{border-color:var(--sky);transform:translateY(-2px)}
-.tn-choice input{position:absolute;opacity:0;pointer-events:none}
+.tn-choice input{position:absolute;top:0;left:0;width:1px!important;height:1px!important;min-height:0!important;margin:0;padding:0;opacity:0;pointer-events:none}
 .tn-choice:focus-within{outline:3px solid #FFB000;outline-offset:3px}
 .tn-choice.on{border-color:var(--blue);background:color-mix(in srgb,var(--surface2) 55%,var(--surface));box-shadow:0 18px 40px -26px rgba(42,91,230,.8)}
 .tn-radio{position:absolute;top:20px;right:20px;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
@@ -359,6 +361,17 @@
   .tn-bar .btn{min-width:150px;justify-content:center}
   body.la-anniv-tunnel{padding-bottom:84px}
   body.tn-done{padding-bottom:0}
+}
+@media(max-width:380px){
+  .tn-panel{padding:20px 14px}
+  .tn-cal-g{gap:3px}
+  .tn-cal-g .d{min-height:0;font-size:14px;border-radius:8px}
+  .tn-cal-g .dn{font-size:10px;letter-spacing:0}
+  .tn-cal-h b{font-size:19px}
+  .tn-slots{padding:14px}
+  .tn-slot{padding:10px 12px}
+  .tn-slot b{font-size:17px}
+  .tn-steps li>span,.tn-steps li>button{font-size:13px}
 }
 @media(max-width:560px){
   .tn-form{grid-template-columns:1fr}

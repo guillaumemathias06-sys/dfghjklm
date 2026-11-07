@@ -68,7 +68,7 @@ class LA_Anniv_Settings {
 			'adresse'           => '2500 chemin des Colles et des Régagnades, 06610 La Gaude',
 			'lien_paiement'     => '',
 			'page_cgv'          => '',
-			'texte_meteo'       => "Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l'anniversaire à une date de votre choix, sans frais. L'acompte reste valable pour la nouvelle date.",
+			'texte_meteo'       => "Les activités se déroulent sur nos terrains extérieurs. Si la météo ne permet pas de jouer, nous vous appelons au plus tard le matin de la fête (avant 10h) et nous reportons l’anniversaire à une date de votre choix, sans frais. L’acompte reste valable pour la nouvelle date.",
 			'gabarit'           => 'club',
 			// Playtomic.
 			'pt_actif'          => 0,
@@ -93,6 +93,7 @@ class LA_Anniv_Settings {
 		if ( null === $cache ) {
 			$saved = get_option( self::OPTION, array() );
 			$cache = wp_parse_args( is_array( $saved ) ? $saved : array(), self::defaults() );
+			$cache['texte_meteo'] = str_replace( "'", '’', (string) $cache['texte_meteo'] );
 			if ( ! is_array( $cache['creneaux'] ) ) {
 				$cache['creneaux'] = self::defaults()['creneaux'];
 			}
@@ -207,7 +208,7 @@ class LA_Anniv_Settings {
 			'extra'  => array(
 				'id'    => 'extra',
 				'nom'   => '30 minutes de jeux supplémentaires',
-				'desc'  => 'La fête dure 2 h 30 au lieu de 2 h. Selon la disponibilité du terrain.',
+				'desc'  => 'La fête dure ' . self::duree_txt( (int) $s['duree'] + 30 ) . ' au lieu de ' . self::duree_txt( (int) $s['duree'] ) . '. Selon la disponibilité du terrain.',
 				'prix'  => (float) $s['opt_extra'],
 				'unite' => 'groupe',
 				'type'  => 'case',
@@ -221,6 +222,45 @@ class LA_Anniv_Settings {
 		$h = (int) $p[0];
 		$m = isset( $p[1] ) ? (int) $p[1] : 0;
 		return $h . 'h' . ( $m ? sprintf( '%02d', $m ) : '' );
+	}
+
+	/** Jours où des fêtes sont proposées, en clair : « le mercredi et le week-end ». */
+	public static function jours_txt() {
+		$cr    = self::get( 'creneaux' );
+		$on    = array();
+		$noms  = array( 1 => 'lundi', 2 => 'mardi', 3 => 'mercredi', 4 => 'jeudi', 5 => 'vendredi', 6 => 'samedi', 0 => 'dimanche' );
+		foreach ( $noms as $j => $nom ) {
+			if ( ! empty( $cr[ $j ] ) && '' !== trim( $cr[ $j ] ) ) {
+				$on[ $j ] = $nom;
+			}
+		}
+		if ( ! $on ) {
+			return '';
+		}
+		if ( 7 === count( $on ) ) {
+			return 'tous les jours';
+		}
+		$parts = array();
+		$we    = isset( $on[6], $on[0] );
+		foreach ( $on as $j => $nom ) {
+			if ( $we && ( 6 === $j || 0 === $j ) ) {
+				continue;
+			}
+			$parts[] = 'le ' . $nom;
+		}
+		if ( $we ) {
+			$parts[] = 'le week-end';
+		}
+		$last = array_pop( $parts );
+		return $parts ? implode( ', ', $parts ) . ' et ' . $last : $last;
+	}
+
+	/** Durée lisible : 120 → « 2 h », 150 → « 2 h 30 ». */
+	public static function duree_txt( $min = null ) {
+		$min = null === $min ? (int) self::get( 'duree' ) : (int) $min;
+		$h   = intdiv( $min, 60 );
+		$m   = $min % 60;
+		return ( $h ? $h . ' h' : '' ) . ( $m ? ( $h ? ' ' : '' ) . sprintf( $h ? '%02d' : '%d min', $m ) : '' );
 	}
 
 	/** « 06 25 57 52 68 » → « tel:+33625575268 ». */
@@ -296,7 +336,7 @@ class LA_Anniv_Settings {
 		$out['tel']            = isset( $in['tel'] ) ? sanitize_text_field( $in['tel'] ) : $d['tel'];
 		$out['whatsapp']       = isset( $in['whatsapp'] ) ? preg_replace( '/\D/', '', $in['whatsapp'] ) : $d['whatsapp'];
 		$out['adresse']        = isset( $in['adresse'] ) ? sanitize_text_field( $in['adresse'] ) : $d['adresse'];
-		$out['texte_meteo']    = isset( $in['texte_meteo'] ) ? sanitize_textarea_field( $in['texte_meteo'] ) : $d['texte_meteo'];
+		$out['texte_meteo']    = isset( $in['texte_meteo'] ) ? str_replace( "'", '’', sanitize_textarea_field( $in['texte_meteo'] ) ) : $d['texte_meteo'];
 		$out['gabarit']        = ( isset( $in['gabarit'] ) && 'theme' === $in['gabarit'] ) ? 'theme' : 'club';
 
 		// Playtomic.

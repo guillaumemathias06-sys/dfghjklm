@@ -272,6 +272,8 @@ class LA_Anniv_Front {
 			'ageMax'    => (int) $s['age_max'],
 			'duree'     => (int) $s['duree'],
 			'horizon'   => (int) $s['horizon'],
+			'jours'     => LA_Anniv_Settings::jours_txt(),
+			'dureeTxt'  => LA_Anniv_Settings::duree_txt(),
 			'acompte'   => (float) $s['acompte'],
 			'expiration'=> (int) $s['expiration_h'],
 			'meteo'     => $s['texte_meteo'],

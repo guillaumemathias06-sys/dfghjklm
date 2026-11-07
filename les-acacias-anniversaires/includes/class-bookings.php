@@ -618,7 +618,7 @@ class LA_Anniv_Bookings {
 		if ( ! isset( $d['pt_verifie'] ) || null === $d['pt_verifie'] ) {
 			return '';
 		}
-		$when = ucfirst( self::date_fr( $d['date'] ) ) . ', ' . LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] );
+		$when = self::date_fr( $d['date'] ) . ', ' . LA_Anniv_Settings::h( $d['heure'] ) . ' – ' . LA_Anniv_Settings::h( $d['fin'] );
 		if ( ! $d['pt_verifie'] ) {
 			return '<p style="background:#FDE2E2;color:#9B1C1C;border-radius:12px;padding:12px 14px"><strong>⚠ Playtomic n’a pas pu être consulté</strong> au moment de la demande. Vérifiez dans Playtomic Manager qu’un terrain de foot est libre le ' . esc_html( $when ) . ', puis bloquez-le.</p>';
 		}
