@@ -164,7 +164,7 @@
         (can ? '</button>' : '</span>') + '</li>';
     }).join('');
     var on = stepsEl.querySelector('li.on');
-    if (on) { stepsEl.scrollLeft = Math.max(0, on.offsetLeft - 16); }
+    if (on) { stepsEl.scrollLeft = Math.max(0, on.offsetLeft - (stepsEl.clientWidth - on.offsetWidth) / 2); }
   };
 
   var head = function (n, title, lead) {

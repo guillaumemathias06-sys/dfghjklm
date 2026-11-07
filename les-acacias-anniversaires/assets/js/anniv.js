@@ -34,9 +34,9 @@
     var copy = function () {
       var done = function () { say('Lien copié. Collez-le dans un message aux parents des invités.'); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text + ' ' + url).then(done, function () { window.prompt('Copiez le lien :', url); });
+        navigator.clipboard.writeText(text + ' ' + url).then(done, function () { say('Copiez ce lien : ' + url); });
       } else {
-        window.prompt('Copiez le lien :', url);
+        say('Copiez ce lien : ' + url);
       }
     };
     box.addEventListener('click', function (e) {
@@ -47,7 +47,7 @@
       if (a === 'copy') { copy(); }
       if (a === 'share') {
         if (navigator.share) {
-          navigator.share({ title: document.title, text: text, url: url }).catch(function () {});
+          navigator.share({ title: document.title, text: text, url: url }).catch(function (err) { if (!err || err.name !== 'AbortError') { copy(); } });
         } else {
           copy();
         }
