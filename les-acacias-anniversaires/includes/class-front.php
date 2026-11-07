@@ -213,6 +213,10 @@ class LA_Anniv_Front {
 
 		wp_enqueue_script( 'la-anniv', LA_ANNIV_URL . 'assets/js/anniv.js', array(), LA_ANNIV_VERSION, true );
 
+		if ( 'tunnel' === $cur && ! empty( $_GET['invitation'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			wp_enqueue_script( 'la-anniv-jspdf', LA_ANNIV_URL . 'assets/vendor/jspdf.umd.min.js', array(), '2.5.2', true );
+			wp_enqueue_script( 'la-anniv-invitation', LA_ANNIV_URL . 'assets/js/invitation-print.js', array( 'la-anniv-jspdf' ), LA_ANNIV_VERSION, true );
+		}
 		if ( 'tunnel' === $cur && empty( $_GET['invitation'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			wp_enqueue_script( 'la-anniv-tunnel', LA_ANNIV_URL . 'assets/js/tunnel.js', array(), LA_ANNIV_VERSION, true );
 			wp_add_inline_script( 'la-anniv-tunnel', 'window.LA_ANNIV=' . wp_json_encode( self::tunnel_config() ) . ';', 'before' );

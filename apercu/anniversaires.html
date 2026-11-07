@@ -1861,6 +1861,29 @@ main p:empty,main h2:empty,main h3:empty,main h4:empty,main small:empty,main .ey
   body,.la-anniv,.inv-page{background:#fff!important;padding:0!important}
   .inv-card{box-shadow:none;border:2px solid #2A5BE6;margin:0 auto;color:#0B1B3F;background:#fff}
 }
+
+/* ============ Cartons d'invitation à imprimer ============ */
+
+.ip{max-width:960px;margin:clamp(36px,5vw,56px) auto 0;background:var(--surface);border:1px solid var(--line);border-radius:32px;padding:clamp(20px,3.4vw,36px);display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(20px,3.4vw,40px);align-items:start;box-shadow:0 30px 70px -45px rgba(5,20,80,.45)}
+.ip-prev{position:sticky;top:96px}
+.ip-prev canvas{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 18px 40px -18px rgba(5,20,80,.45),0 0 0 1px var(--line);background:#fff}
+.ip-form{display:grid;gap:14px}
+.ip-h{font-size:clamp(26px,3.2vw,36px);font-weight:800;margin-top:-4px}
+.ip-lead{color:var(--muted)}
+.ip-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ip .tn-f input,.ip .tn-f select,.ip .tn-f textarea{width:100%;min-height:50px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px;padding:11px 14px}
+.ip .tn-f textarea{min-height:96px;resize:vertical}
+.ip .tn-f input:focus,.ip .tn-f select:focus,.ip .tn-f textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 18%,transparent)}
+.la-anniv .ip label.tn-f{font-size:inherit;font-weight:inherit;letter-spacing:normal;text-transform:none;color:inherit}
+.ip-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.ip-btns .btn svg{width:18px;height:18px}
+.ip-btns .btn:disabled{opacity:.6;cursor:wait}
+.ip-note{font-size:14px;color:var(--muted)}
+@media(max-width:760px){
+  .ip{grid-template-columns:1fr}
+  .ip-prev{position:static;max-width:300px;margin-inline:auto;width:100%}
+  .ip-row{grid-template-columns:1fr}
+}
 </style></head><body class="wp-singular page-template-default page page-id-4 page-parent wp-embed-responsive wp-theme-twentytwentyone la-site la-anniv-page la-anniv-landing is-light-theme no-js singular">
 <a class="skip" href="#top" style="position:absolute;left:-9999px">Aller au contenu</a>
 <header class="hdr" id="hdr">

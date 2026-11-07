@@ -59,5 +59,48 @@ $texte  = sprintf( '🎉 %s fête ses %d ans aux Acacias ! %s, %s. Toutes les in
       <a class="btn btn-line" href="<?php echo esc_url( $maps ); ?>" target="_blank" rel="noopener">Itinéraire</a>
     </div>
     <p class="inv-note inv-noprint" role="status" id="invMsg"></p>
+
+    <section class="ip inv-noprint" id="invPrint" aria-labelledby="ipTitle">
+      <div class="ip-prev"><canvas id="ipCanvas" width="620" height="874" aria-label="Aperçu de l’invitation à imprimer"></canvas></div>
+      <div class="ip-form">
+        <p class="eyebrow">À imprimer</p>
+        <h2 id="ipTitle" class="ip-h">Les cartons d’invitation de <?php echo esc_html( $prenom ); ?></h2>
+        <p class="ip-lead">Un PDF prêt à imprimer, au nom de <?php echo esc_html( $prenom ); ?>, avec le jour et l’heure de la fête. Ajoutez les prénoms des copains pour que chaque carton soit nominatif.</p>
+        <label class="tn-f"><span>Prénoms des invités <em>(un par ligne, facultatif)</em></span><textarea id="ipNames" rows="4" placeholder="Lucas&#10;Emma&#10;Noah"></textarea></label>
+        <div class="ip-row">
+          <label class="tn-f"><span>Réponse au <em>(facultatif)</em></span><input type="tel" id="ipTel" placeholder="06 00 00 00 00" autocomplete="tel"></label>
+          <label class="tn-f"><span>Avant le <em>(facultatif)</em></span><input type="text" id="ipAvant" placeholder="Ex. 20 novembre"></label>
+        </div>
+        <div class="ip-row">
+          <label class="tn-f"><span>Format</span><select id="ipFormat">
+            <option value="4">4 cartons par page A4 (à découper)</option>
+            <option value="2">2 cartons par page A4 (format A5)</option>
+            <option value="1">1 carton par page A4</option>
+          </select></label>
+          <label class="tn-f"><span>Nombre de cartons</span><input type="number" id="ipCount" min="1" max="40" value="<?php echo (int) max( 1, $resa['enfants'] - 1 ); ?>"></label>
+        </div>
+        <div class="ip-btns">
+          <button type="button" class="btn btn-pri" id="ipPdf"><?php echo $ic( 'print' ); // phpcs:ignore ?>Télécharger le PDF</button>
+          <button type="button" class="btn btn-line" id="ipImg">Télécharger l’image</button>
+        </div>
+        <p class="ip-note" id="ipMsg" role="status">Ces informations servent uniquement à fabriquer le PDF : elles ne sont pas enregistrées.</p>
+      </div>
+    </section>
   </div>
 </div>
+<?php
+$inv_data = array(
+	'prenom'  => $prenom,
+	'age'     => (int) $resa['age'],
+	'date'    => $date,
+	'heure'   => $heure,
+	'univers' => $uni['nom'],
+	'uniId'   => $uni['id'],
+	'accroche'=> $uni['accroche'],
+	'adresse' => $s['adresse'],
+	'photo'   => LA_Anniv_Front::images()['hero'] ? LA_Anniv_Front::images()['hero'] : $uni['img'],
+	'logo'    => LA_Anniv_Front::images()['logo'],
+	'fichier' => sanitize_file_name( 'invitation-' . remove_accents( $prenom ) ),
+);
+?>
+<script>window.LA_INV=<?php echo wp_json_encode( $inv_data ); ?>;</script>

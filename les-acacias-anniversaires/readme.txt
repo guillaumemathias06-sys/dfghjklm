@@ -1,5 +1,5 @@
 === Les Acacias – Anniversaires enfants ===
-Version : 1.1.0
+Version : 1.2.0
 Nécessite : WordPress 6.0, PHP 7.4, et le plugin « les-acacias-site » (design du site)
 
 Pages « Anniversaires » et tunnel de réservation en 6 étapes aux couleurs du site Les Acacias.
@@ -29,6 +29,16 @@ Le prix est recalculé côté serveur. Chaque demande :
 - bloque le créneau (libéré automatiquement après 72 h sans confirmation, réglable) ;
 - envoie un e-mail au club et un e-mail récapitulatif à la famille ;
 - donne à la famille un lien d'invitation numérique à partager (WhatsApp, lien, impression).
+
+== Cartons d'invitation à imprimer ==
+
+Sur la page d'invitation (lien reçu par la famille), la famille télécharge un PDF de cartons
+au nom de l'enfant, avec son âge, le jour, l'heure, l'univers et l'adresse :
+- 4 cartons A6 par page A4 (traits de coupe), 2 cartons A5 par page, ou 1 par page ;
+- prénoms des invités facultatifs : un carton nominatif par copain (« Pour : Lucas ») ;
+- numéro et date limite de réponse facultatifs ;
+- image JPG du carton pour l'envoyer par message.
+Le PDF est fabriqué dans le navigateur (jsPDF, licence MIT, inclus) : rien n'est envoyé au serveur.
 
 == Gestion ==
 
