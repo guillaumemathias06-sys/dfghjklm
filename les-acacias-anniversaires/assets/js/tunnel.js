@@ -163,6 +163,8 @@
         '<b>' + (i < st.step ? ICON.check : (i + 1)) + '</b><em>' + esc(s.label) + '</em>' +
         (can ? '</button>' : '</span>') + '</li>';
     }).join('');
+    var on = stepsEl.querySelector('li.on');
+    if (on) { stepsEl.scrollLeft = Math.max(0, on.offsetLeft - 16); }
   };
 
   var head = function (n, title, lead) {
@@ -476,12 +478,19 @@
   barNext.addEventListener('click', next);
   btnBack.addEventListener('click', function () { go(st.step - 1); });
 
-  $('#tnBarSum').addEventListener('click', function () {
-    var open = document.body.classList.toggle('tn-sheet');
-    this.setAttribute('aria-expanded', open);
-  });
+  var sheet = function (open) {
+    document.body.classList.toggle('tn-sheet', open);
+    $('#tnBarSum').setAttribute('aria-expanded', open);
+    var lab = $('#tnBarSum span'); if (lab) { lab.textContent = open ? 'Masquer le détail' : 'Voir le détail'; }
+  };
+  var shade = document.createElement('div');
+  shade.className = 'tn-shade';
+  shade.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(shade);
+  shade.addEventListener('click', function () { sheet(false); });
+  $('#tnBarSum').addEventListener('click', function () { sheet(!document.body.classList.contains('tn-sheet')); });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && document.body.classList.contains('tn-sheet')) { document.body.classList.remove('tn-sheet'); }
+    if (e.key === 'Escape' && document.body.classList.contains('tn-sheet')) { sheet(false); }
   });
 
   app.addEventListener('change', function (e) {
@@ -531,7 +540,7 @@
       });
       $('#tnSlots').innerHTML = slotsHtml();
       fixOptions(); recap(); save(); showErr('');
-      if (window.innerWidth < 860) { var sl = $('#tnSlots'); if (sl) { sl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }
+      showSlot();
       return;
     }
     if (t.hasAttribute('data-slot')) {
@@ -555,6 +564,23 @@
       render();
     }
   });
+
+  // Garde l'horaire choisi (ou le premier libre) visible entre l'en-tête et la barre fixe du bas.
+  var showSlot = function () {
+    var el = $('.tn-slot.on') || $('.tn-slot:not([disabled])') || $('#tnSlots');
+    if (!el) { return; }
+    var r = el.getBoundingClientRect();
+    var bar = $('#tnBar');
+    var bottom = (bar && getComputedStyle(bar).display !== 'none') ? bar.getBoundingClientRect().top : window.innerHeight;
+    var hdr = document.getElementById('hdr');
+    var top = hdr ? hdr.getBoundingClientRect().bottom : 0;
+    var t = $('.tn-slots-t');
+    var want = t ? t.getBoundingClientRect().top : r.top;
+    var delta = 0;
+    if (r.bottom > bottom - 12) { delta = Math.min(r.bottom - bottom + 24, want - top - 12); }
+    else if (r.top < top + 8) { delta = r.top - top - 16; }
+    if (delta) { window.scrollBy({ top: delta, behavior: 'smooth' }); }
+  };
 
   // Un créneau sans pizza ou sans prolongation possible retire l'option correspondante.
   var fixOptions = function () {
@@ -630,8 +656,9 @@
       '</div>';
     showErr('');
     recap();
-    var h2 = $('.tn-h2', panel); if (h2) { h2.focus(); }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    var h2 = $('.tn-h2', panel); if (h2) { h2.focus({ preventScroll: true }); }
+    var hd = document.getElementById('hdr');
+    window.scrollTo({ top: Math.max(0, panel.getBoundingClientRect().top + window.scrollY - (hd ? hd.offsetHeight : 0) - 12), behavior: 'smooth' });
     if (window.dataLayer) { window.dataLayer.push({ event: 'anniversaire_demande', value: d.prix.total, currency: 'EUR' }); }
   };
 

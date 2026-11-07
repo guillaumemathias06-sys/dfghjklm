@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Les Acacias – Anniversaires enfants
  * Description:       Pages « Anniversaires » et tunnel de réservation (formule, univers, date, invités, options, coordonnées) aux couleurs du site Les Acacias. Gestion des demandes dans l'administration.
- * Version:           1.2.1
+ * Version:           1.2.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Tennis Club Les Acacias
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'LA_ANNIV_VERSION', '1.2.1' );
+define( 'LA_ANNIV_VERSION', '1.2.2' );
 define( 'LA_ANNIV_FILE', __FILE__ );
 define( 'LA_ANNIV_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LA_ANNIV_URL', plugin_dir_url( __FILE__ ) );

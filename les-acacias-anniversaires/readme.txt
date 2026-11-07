@@ -1,5 +1,5 @@
 === Les Acacias – Anniversaires enfants ===
-Version : 1.2.1
+Version : 1.2.2
 Nécessite : WordPress 6.0, PHP 7.4, et le plugin « les-acacias-site » (design du site)
 
 Pages « Anniversaires » et tunnel de réservation en 6 étapes aux couleurs du site Les Acacias.
