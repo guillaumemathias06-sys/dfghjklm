@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>Les Acacias — Tableau de bord V1.0</title>
+<title>Tableau de bord Les Acacias</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <style>
 :root{
   --bg:#f6f5f1;--surface:#ffffff;--surface-2:#f0efe9;--ink:#1d2321;--ink-2:#4b5551;--ink-3:#6b746f;
@@ -34,18 +34,20 @@ a{color:var(--accent)}
 .sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .skip{position:absolute;left:16px;top:-60px;background:var(--accent);color:var(--accent-ink);padding:8px 12px;border-radius:6px;z-index:10;text-decoration:none}
 .skip:focus{top:8px}
-header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.top-inner{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.top-inner{max-width:1180px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 .brand{font-weight:700;letter-spacing:.02em;text-decoration:none;color:var(--ink);display:flex;align-items:baseline;gap:8px}
 .brand small{font-weight:500;color:var(--ink-3);font-size:12px}
 #save-status{margin-left:auto;font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
 #save-status .dot{width:8px;height:8px;border-radius:50%;background:var(--ok-ink);flex:none}
+#save-status[data-state="wait"] .dot{background:var(--ink-3)}
 #save-status[data-state="off"] .dot,#save-status[data-state="error"] .dot{background:var(--danger)}
-nav.main{max-width:1180px;margin:0 auto;padding:0 16px 8px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin}
+nav.main{max-width:1180px;margin:0 auto;padding-block:0 8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin}
 nav.main a{white-space:nowrap;text-decoration:none;color:var(--ink-2);padding:6px 10px;border-radius:999px;font-size:14px}
 nav.main a:hover{background:var(--surface-2)}
 nav.main a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
-main{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+main{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main:focus,h1[tabindex="-1"]:focus{outline:none}
 h1{font-size:24px;line-height:1.25;margin:0 0 6px}
 h2{font-size:18px;margin:28px 0 10px}
@@ -136,7 +138,7 @@ details li{margin-bottom:6px}
 .dec h3{margin-bottom:4px}
 .dec dl{display:grid;grid-template-columns:minmax(90px,140px) minmax(0,1fr);gap:3px 12px;margin:6px 0 0;font-size:13.5px}
 .dec dt{color:var(--ink-3)}.dec dd{margin:0;white-space:pre-wrap}
-footer{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3);font-size:12.5px}
+footer{max-width:1180px;margin:0 auto;padding-block:0 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));color:var(--ink-3);font-size:12.5px}
 @media (max-width:720px){
   h1{font-size:21px}
   .two,.form-grid{grid-template-columns:minmax(0,1fr)}
@@ -149,13 +151,11 @@ footer{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3);fon
 }
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 </style>
-</head>
-<body>
 <a class="skip" href="#contenu" id="skip">Aller au contenu</a>
 <header class="top">
   <div class="top-inner">
     <a class="brand" href="#synthese">LES ACACIAS <small>Tableau de bord · V1.0</small></a>
-    <div id="save-status" role="status" aria-live="polite" data-state="off"><span class="dot" aria-hidden="true"></span><span id="save-text">Vérification du stockage…</span></div>
+    <div id="save-status" role="status" aria-live="polite" data-state="wait"><span class="dot" aria-hidden="true"></span><span id="save-text">Connexion aux données…</span></div>
   </div>
   <nav class="main" aria-label="Navigation principale">
     <a href="#synthese" data-r="synthese">Synthèse</a>
@@ -169,7 +169,7 @@ footer{max-width:1180px;margin:0 auto;padding:0 16px 32px;color:var(--ink-3);fon
 </header>
 <main id="contenu" tabindex="-1"></main>
 <footer>
-  <p>V1.0 — structure seule. Aucune source n’est raccordée : toutes les valeurs, cibles, tendances, comparaisons et dates de synchronisation sont indisponibles (« — », « À relier »). Les saisies sont enregistrées uniquement dans le stockage local de ce navigateur, sur cet appareil.</p>
+  <p>V1.0 — structure seule. Aucune source n’est raccordée : toutes les valeurs, cibles, tendances, comparaisons et dates de synchronisation sont indisponibles (« — », « À relier »). Les annotations et décisions sont enregistrées selon le mode indiqué en haut de page : en ligne pour toute l’équipe sur la version publiée, ou sur cet appareil seulement lorsque le fichier est ouvert hors ligne.</p>
 </footer>
 <script>
 "use strict";
@@ -248,57 +248,144 @@ const RULES = [
   "Pendant le raccordement, confirmer pour chaque fiche le propriétaire, la source, la clé de rapprochement, les dates, la méthode, les conditions d’éligibilité et la fréquence. Contrôler doublons, périodes manquantes et cohérence avec les sources. Les objectifs et seuils seront validés sur l’historique comparable. Aucun chiffre ni seuil de performance n’est prérempli."
 ];
 
-/* ===== Stockage local ===== */
+/* ===== Enregistrement : base partagée en ligne si disponible, sinon stockage local ===== */
 const KEY = "les-acacias-tdb-v1";
-const store = { ok: false, data: { v: 1, notes: {}, decisions: [] }, last: null };
+const RO_TEXT = "Votre accès est en lecture seule. Demandez au propriétaire du tableau un accès qui permet de modifier.";
+/* mode : "boot" (vérification), "db" (base partagée), "local" (ce navigateur), "memory" (aucun stockage) */
+const store = { mode: "boot", canWrite: true, db: null, loaded: false, slow: false, broken: false, last: null,
+  data: { v: 1, notes: {}, decisions: [] }, pending: false, dirty: false, pendingDel: null };
 function str(v, max) { return typeof v === "string" ? v.slice(0, max || 2000) : ""; }
+function isoDate(v) { return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ""; }
+function cleanNote(n) {
+  n = n || {};
+  return { resp: str(n.resp, 200), src: str(n.src, 400), date: isoDate(n.date), proc: str(n.proc), next: str(n.next), av: AV.indexOf(n.av) >= 0 ? n.av : AV[0] };
+}
+function cleanDec(d) {
+  if (!d || typeof d !== "object" || !str(d.id, 60) || !str(d.titre, 300)) return null;
+  return { id: str(d.id, 60), titre: str(d.titre, 300), resp: str(d.resp, 200), ech: isoDate(d.ech), per: SEGS.indexOf(d.per) >= 0 ? d.per : "",
+    ind: BY[d.ind] ? d.ind : "", constat: str(d.constat), attendu: str(d.attendu),
+    statut: ["À faire", "En cours", "Terminée"].indexOf(d.statut) >= 0 ? d.statut : "À faire", prio: d.prio === true, cree: str(d.cree, 40) };
+}
+function sortDecs(list) { return list.sort(function (a, b) { return a.cree < b.cree ? 1 : a.cree > b.cree ? -1 : 0; }); }
 function sanitize(raw) {
   const out = { v: 1, notes: {}, decisions: [] };
   if (!raw || typeof raw !== "object") return out;
-  if (raw.notes && typeof raw.notes === "object") {
-    Object.keys(raw.notes).forEach(function (id) {
-      if (!BY[id]) return;
-      const n = raw.notes[id] || {};
-      out.notes[id] = { resp: str(n.resp, 200), src: str(n.src, 400), date: /^\d{4}-\d{2}-\d{2}$/.test(n.date) ? n.date : "",
-        proc: str(n.proc), next: str(n.next), av: AV.indexOf(n.av) >= 0 ? n.av : AV[0] };
-    });
-  }
-  if (Array.isArray(raw.decisions)) {
-    raw.decisions.forEach(function (d) {
-      if (!d || typeof d !== "object" || !str(d.id, 60) || !str(d.titre, 300)) return;
-      out.decisions.push({ id: str(d.id, 60), titre: str(d.titre, 300), resp: str(d.resp, 200),
-        ech: /^\d{4}-\d{2}-\d{2}$/.test(d.ech) ? d.ech : "", per: SEGS.indexOf(d.per) >= 0 ? d.per : "",
-        ind: BY[d.ind] ? d.ind : "", constat: str(d.constat), attendu: str(d.attendu),
-        statut: ["À faire", "En cours", "Terminée"].indexOf(d.statut) >= 0 ? d.statut : "À faire", prio: d.prio === true });
-    });
-  }
+  if (raw.notes && typeof raw.notes === "object") Object.keys(raw.notes).forEach(function (id) { if (BY[id]) out.notes[id] = cleanNote(raw.notes[id]); });
+  if (Array.isArray(raw.decisions)) raw.decisions.forEach(function (d) { const c = cleanDec(d); if (c) out.decisions.push(c); });
+  sortDecs(out.decisions);
   return out;
 }
-function loadStore() {
+function loadLocal() {
   try {
     const ls = window.localStorage;
     ls.setItem(KEY + ":test", "1"); ls.removeItem(KEY + ":test");
-    store.ok = true;
+    store.mode = "local";
     const raw = ls.getItem(KEY);
     if (raw) { try { store.data = sanitize(JSON.parse(raw)); } catch (e) { store.data = sanitize(null); } }
-  } catch (e) { store.ok = false; }
-  showStatus();
+  } catch (e) { store.mode = "memory"; }
+  store.loaded = true;
 }
-function persist() {
-  if (!store.ok) { showStatus(); return false; }
-  try { window.localStorage.setItem(KEY, JSON.stringify(store.data)); store.last = new Date(); showStatus(); return true; }
-  catch (e) { store.ok = false; showStatus("error"); return false; }
+function setStatus(state, text) {
+  const el = document.getElementById("save-status");
+  el.dataset.state = state; document.getElementById("save-text").textContent = text;
 }
-function showStatus(err) {
-  const el = document.getElementById("save-status"), t = document.getElementById("save-text");
-  if (err === "error") { el.dataset.state = "error"; t.textContent = "Échec de l’enregistrement local : les dernières saisies seront perdues au rechargement."; return; }
-  if (!store.ok) { el.dataset.state = "off"; t.textContent = "Stockage local indisponible : les saisies restent en mémoire et seront perdues au rechargement."; return; }
-  el.dataset.state = "on";
-  t.textContent = store.last
-    ? "Enregistré à " + store.last.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + " · sur cet appareil et ce navigateur uniquement"
-    : "Sauvegarde locale active · propre à cet appareil et ce navigateur";
+function hhmm(d) { return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
+function showStatus() {
+  if (store.mode === "boot") return setStatus("wait", "Connexion aux données…");
+  if (store.mode === "memory") return setStatus("off", "Stockage indisponible : les saisies seront perdues au rechargement.");
+  if (store.mode === "local") return setStatus("on", store.last ? "Enregistré à " + hhmm(store.last) + " · sur cet appareil uniquement" : "Enregistrement sur cet appareil uniquement");
+  if (store.broken) return setStatus("error", "Données partagées indisponibles. Rechargez la page plus tard.");
+  if (!store.loaded) return setStatus(store.slow ? "error" : "wait", store.slow ? "Données partagées injoignables pour l’instant : l’affichage peut être incomplet." : "Chargement des données partagées…");
+  if (!store.canWrite) return setStatus("off", "Données partagées · lecture seule pour votre accès");
+  setStatus("on", store.last ? "Enregistré pour l’équipe à " + hhmm(store.last) : "Données partagées en ligne · visibles par toute l’équipe");
 }
 function note(id) { return store.data.notes[id] || { resp: "", src: "", date: "", proc: "", next: "", av: AV[0] }; }
+
+function applyLocal(op) {
+  if (op.col === "notes") { if (op.del) delete store.data.notes[op.id]; else store.data.notes[op.id] = cleanNote(op.rec); return; }
+  const list = store.data.decisions.filter(function (d) { return d.id !== op.id; });
+  if (!op.del) { const c = cleanDec(Object.assign({}, op.rec, { id: op.id })); if (c) list.push(c); }
+  store.data.decisions = sortDecs(list);
+}
+function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+async function dbCall(fn) {
+  try { await fn(); }
+  catch (e) { if (e && e.code === "unavailable") { await wait(400 + Math.random() * 600); await fn(); } else throw e; }
+}
+function errText(e) {
+  const c = e && e.code;
+  if (c === "invalid_argument") { store.canWrite = false; showStatus(); return RO_TEXT; }
+  if (c === "quota_exceeded") return "La base partagée est pleine : supprimez des actions terminées, puis réessayez.";
+  if (c === "resource_exhausted") return "Trop d’enregistrements rapprochés : patientez quelques secondes, puis réessayez.";
+  if (c === "revoked" || c === "not_granted") { store.broken = true; showStatus(); return "L’accès aux données partagées a été retiré. Rechargez la page."; }
+  return "Enregistrement impossible pour l’instant : la base partagée ne répond pas. Réessayez dans un instant.";
+}
+/* ops : [{col:"notes"|"decisions", id, rec} ou {col, id, del:true}] ; renvoie {ok, where, text} */
+async function commit(ops) {
+  if (store.mode === "boot") return { ok: false, text: "Connexion aux données en cours. Réessayez dans quelques secondes." };
+  if (!store.canWrite) return { ok: false, text: RO_TEXT };
+  if (store.mode === "db") {
+    try {
+      for (const op of ops) {
+        const ref = store.db.collection(op.col).doc(op.id);
+        await dbCall(function () { return op.del ? ref.delete() : ref.set(op.rec); });
+        applyLocal(op);
+      }
+      store.last = new Date(); showStatus();
+      return { ok: true, where: "pour toute l’équipe" };
+    } catch (e) { return { ok: false, text: errText(e) }; }
+  }
+  ops.forEach(applyLocal);
+  if (store.mode === "local") {
+    try { window.localStorage.setItem(KEY, JSON.stringify(store.data)); store.last = new Date(); showStatus(); return { ok: true, where: "sur cet appareil" }; }
+    catch (e) { store.mode = "memory"; showStatus(); }
+  }
+  return { ok: true, warn: true, where: "pour cette session uniquement (stockage indisponible)" };
+}
+
+/* Mises à jour venues d’autres personnes : on ne réaffiche pas pendant une saisie. */
+function isEditing() {
+  const a = document.activeElement, m = document.getElementById("contenu");
+  return store.dirty || (a && m.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+function onRemote() {
+  if (isEditing()) { store.pending = true; return; }
+  store.pending = false; rerender();
+}
+document.addEventListener("focusout", function () {
+  setTimeout(function () { if (store.pending && !isEditing()) { store.pending = false; rerender(); } }, 0);
+});
+document.addEventListener("input", function (e) { if (e.target.closest && e.target.closest("#note-form, #dec-form")) store.dirty = true; });
+
+async function initStorage() {
+  let c = window.claude;
+  if (!c || typeof c.use !== "function") { await wait(800); c = window.claude; }
+  if (!c || typeof c.use !== "function") { loadLocal(); showStatus(); rerender(); return; }
+  let db = null;
+  try { db = await c.use("db"); } catch (e) { db = null; }
+  if (!db) { loadLocal(); showStatus(); rerender(); return; }
+  store.db = db; store.mode = "db"; store.data = { v: 1, notes: {}, decisions: [] }; showStatus(); rerender();
+  try {
+    const u = await c.use("user");
+    if (u && typeof u.can === "function") { const w = await u.can("data.write"); if (w === false) { store.canWrite = false; showStatus(); rerender(); } }
+  } catch (e) { /* droits inconnus : l’écriture refusée le dira */ }
+  const got = { notes: false, decisions: false };
+  const timer = setTimeout(function () { if (!store.loaded) { store.slow = true; showStatus(); } }, 10000);
+  function done(snap, k) {
+    if (!snap.metadata.fromCache) got[k] = true;
+    if (got.notes && got.decisions && !store.loaded) { store.loaded = true; store.slow = false; clearTimeout(timer); }
+    showStatus(); onRemote();
+  }
+  function fail(e) { clearTimeout(timer); store.broken = true; showStatus(); }
+  db.collection("notes").onSnapshot(function (snap) {
+    const n = {}; snap.docs.forEach(function (d) { if (BY[d.id]) n[d.id] = cleanNote(d.data()); });
+    store.data.notes = n; done(snap, "notes");
+  }, fail);
+  db.collection("decisions").onSnapshot(function (snap) {
+    const l = []; snap.docs.forEach(function (d) { const x = cleanDec(Object.assign({}, d.data(), { id: d.id })); if (x) l.push(x); });
+    store.data.decisions = sortDecs(l); done(snap, "decisions");
+  }, fail);
+}
 
 /* ===== Outils d’affichage ===== */
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -306,7 +393,7 @@ const NA = '<span class="na"><span aria-hidden="true">—</span><span class="sr"
 function segTag(s) { return '<span class="tag seg-' + esc(s) + '">' + esc(s === "Commun" ? "Commun" : s) + "</span>"; }
 function avTag(id) { const a = note(id).av; return '<span class="tag av-' + AV.indexOf(a) + '"><span class="sr">Avancement : </span>' + esc(a) + "</span>"; }
 function connTag() { return '<span class="tag conn">Connexion : À relier</span>'; }
-function ficheHref(id) { return "#fiche/" + encodeURIComponent(id); }
+function ficheHref(id) { return "#fiche-" + id; }
 function ficheLink(id) { const i = BY[id]; return '<a href="' + ficheHref(id) + '">' + esc(i.l) + ' <span class="id">' + esc(id) + "</span></a>"; }
 function linksList(ids) { return '<ul class="links">' + ids.map(function (id) { return "<li>" + ficheLink(id) + "</li>"; }).join("") + "</ul>"; }
 function fmtDate(iso) { if (!iso) return ""; const p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
@@ -416,7 +503,7 @@ function prodMatches(p) {
   return true;
 }
 function prodCard(p) {
-  return '<article class="card"><h3><a href="#produit/' + p.slug + '">' + esc(p.n) + "</a></h3>" +
+  return '<article class="card"><h3><a href="#produit-' + p.slug + '">' + esc(p.n) + "</a></h3>" +
     '<div class="tags">' + segTag(p.seg) + '<span class="tag">' + esc(p.act) + "</span>" +
     (p.sports.length ? p.sports.map(function (s) { return '<span class="tag">' + esc(s) + "</span>"; }).join("") : '<span class="tag conn">Sports à préciser</span>') + "</div>" +
     '<dl class="kv three"><div><dt>Volume</dt><dd>' + NA + "</dd></div><div><dt>CA</dt><dd>" + NA + "</dd></div><div><dt>Marge</dt><dd>" + NA + "</dd></div></dl>" +
@@ -432,7 +519,7 @@ function viewProduits(m) {
     SPORTS.map(function (s) { return '<th scope="col">' + esc(s) + "</th>"; }).join("") + '<th scope="col">À préciser</th></tr></thead><tbody>' +
     ACTS.map(function (a) {
       const ps = PRODS.filter(function (p) { return p.act === a; });
-      function cell(list) { return list.length ? list.map(function (p) { return '<a href="#produit/' + p.slug + '">' + esc(p.n) + "</a>"; }).join("<br>") : '<span class="muted">·</span>'; }
+      function cell(list) { return list.length ? list.map(function (p) { return '<a href="#produit-' + p.slug + '">' + esc(p.n) + "</a>"; }).join("<br>") : '<span class="muted">·</span>'; }
       return '<tr><th scope="row">' + esc(a) + "</th>" + SPORTS.map(function (s) { return "<td>" + cell(ps.filter(function (p) { return p.sports.indexOf(s) >= 0; })) + "</td>"; }).join("") +
         "<td>" + cell(ps.filter(function (p) { return !p.sports.length; })) + "</td></tr>";
     }).join("") + "</tbody></table></div>";
@@ -515,7 +602,7 @@ function viewFiche(m, id) {
     '<section class="card" style="margin-top:12px" aria-labelledby="h-use"><h2 id="h-use" style="margin-top:0">Utilisée dans</h2>' +
     (inCards.length || inProds.length
       ? (inCards.length ? '<div class="small muted">Cartes de synthèse</div><ul class="links">' + inCards.map(function (c) { return '<li><a href="#synthese">' + esc(c.t) + "</a></li>"; }).join("") + "</ul>" : "") +
-        (inProds.length ? '<div class="small muted" style="margin-top:8px">Produits</div><ul class="links">' + inProds.map(function (p) { return '<li><a href="#produit/' + p.slug + '">' + esc(p.n) + "</a></li>"; }).join("") + "</ul>" : "")
+        (inProds.length ? '<div class="small muted" style="margin-top:8px">Produits</div><ul class="links">' + inProds.map(function (p) { return '<li><a href="#produit-' + p.slug + '">' + esc(p.n) + "</a></li>"; }).join("") + "</ul>" : "")
       : '<p class="small muted" style="margin:0">Cette fiche n’apparaît ni en synthèse ni dans le catalogue produits.</p>') + "</section></div>";
   h += '<form class="card" id="note-form" aria-labelledby="h-note" novalidate><h2 id="h-note" style="margin-top:0">Préparer le raccordement</h2>' +
     '<p class="small muted">Ces informations ne relient aucune source : elles documentent le process. La connexion reste « À relier ».</p><div class="form-grid">' +
@@ -529,18 +616,24 @@ function viewFiche(m, id) {
     }).join("") + "</div></fieldset></div>" +
     '<div class="actions"><button type="submit" class="primary">Enregistrer</button><span class="msg" id="n-msg" role="status" aria-live="polite"></span></div></form></div>';
   m.innerHTML = h;
-  $("#note-form").addEventListener("submit", function (e) {
+  let busy = false;
+  $("#note-form").addEventListener("submit", async function (e) {
     e.preventDefault();
+    if (busy) return;
     const av = ($('input[name="n-av"]:checked') || {}).value;
-    store.data.notes[id] = { resp: $("#n-resp").value.trim().slice(0, 200), src: $("#n-src").value.trim().slice(0, 400),
-      date: /^\d{4}-\d{2}-\d{2}$/.test($("#n-date").value) ? $("#n-date").value : "", proc: $("#n-proc").value.trim().slice(0, 2000),
+    const rec = { resp: $("#n-resp").value.trim().slice(0, 200), src: $("#n-src").value.trim().slice(0, 400),
+      date: isoDate($("#n-date").value), proc: $("#n-proc").value.trim().slice(0, 2000),
       next: $("#n-next").value.trim().slice(0, 2000), av: AV.indexOf(av) >= 0 ? av : AV[0] };
-    const ok = persist();
-    $all(".tags .av-0, .tags .av-1, .tags .av-2", m).forEach(function (t) { t.outerHTML = avTag(id); });
+    busy = true; $("#n-msg").className = "msg"; $("#n-msg").textContent = "Enregistrement…";
+    const r = await commit([{ col: "notes", id: id, rec: rec }]);
+    busy = false;
+    if (!r.ok) { $("#n-msg").className = "msg err"; $("#n-msg").textContent = r.text; return; }
+    store.dirty = false; store.pending = false;
+    rerender();
     const msg = $("#n-msg");
-    msg.className = "msg" + (ok ? "" : " err");
-    msg.textContent = ok ? "Fiche enregistrée sur cet appareil. Avancement : " + store.data.notes[id].av + ". Connexion : À relier." :
-      "Modifications conservées pour cette session uniquement : stockage local indisponible.";
+    if (!msg) return;
+    msg.className = "msg" + (r.warn ? " err" : "");
+    msg.textContent = "Fiche enregistrée " + r.where + ". Avancement : " + rec.av + ". Connexion : À relier.";
   });
 }
 
@@ -564,7 +657,9 @@ function decCard(d) {
     "<dt>Résultat attendu</dt><dd>" + (d.attendu ? esc(d.attendu) : NA) + "</dd></dl>" +
     '<div class="actions"><button type="button" data-edit="' + esc(d.id) + '">Modifier<span class="sr"> : ' + esc(d.titre) + "</span></button>" +
     '<button type="button" data-prio="' + esc(d.id) + '" aria-pressed="' + d.prio + '">' + (d.prio ? "Retirer des priorités" : "Marquer prioritaire") + '<span class="sr"> : ' + esc(d.titre) + "</span></button>" +
-    '<button type="button" class="danger" data-del="' + esc(d.id) + '">Supprimer<span class="sr"> : ' + esc(d.titre) + "</span></button></div></article>";
+    (store.pendingDel === d.id
+      ? '<span class="msg err">Supprimer définitivement cette action pour tout le monde ?</span><button type="button" class="danger" data-del-yes="' + esc(d.id) + '">Confirmer la suppression</button><button type="button" data-del-no="' + esc(d.id) + '">Annuler</button>'
+      : '<button type="button" class="danger" data-del="' + esc(d.id) + '">Supprimer<span class="sr"> : ' + esc(d.titre) + "</span></button>") + "</div></article>";
 }
 function viewDecisions(m, focusForm) {
   const decs = store.data.decisions;
@@ -573,7 +668,7 @@ function viewDecisions(m, focusForm) {
   const v = e || { titre: "", resp: "", ech: "", per: "", ind: "", constat: "", attendu: "", statut: "À faire", prio: false };
   const prioCount = decs.filter(function (d) { return d.prio; }).length;
   let h = "<h1>Décisions</h1>" +
-    '<p class="lede">Registre des actions décidées à partir des fiches. Il est vide au démarrage et ne contient que vos saisies.</p>' +
+    '<p class="lede">Registre des actions décidées à partir des fiches. Il est vide au démarrage et ne contient que les saisies de l’équipe.</p>' +
     '<div class="grid" style="margin-bottom:6px">' +
     '<div class="card"><h3>Revue hebdomadaire</h3><p class="small" style="margin:0">Sélectionner jusqu’à trois actions prioritaires.</p></div>' +
     '<div class="card"><h3>Revue mensuelle</h3><p class="small" style="margin:0">Revoir la finance, les marges et le budget.</p></div>' +
@@ -602,44 +697,72 @@ function viewDecisions(m, focusForm) {
   m.innerHTML = h;
   const msg = $("#d-msg");
   function fail(t) { msg.className = "msg err"; msg.textContent = t; }
-  $("#dec-form").addEventListener("submit", function (ev) {
+  let busy = false;
+  $("#dec-form").addEventListener("submit", async function (ev) {
     ev.preventDefault();
     const titre = $("#d-titre").value.trim();
     if (!titre) { fail("Indiquez l’action à mener."); $("#d-titre").setAttribute("aria-invalid", "true"); $("#d-titre").focus(); return; }
     const prio = $("#d-prio").checked;
     const others = decs.filter(function (d) { return d.prio && d.id !== editing; }).length;
     if (prio && others >= 3) { fail("Trois actions prioritaires sont déjà sélectionnées. Retirez-en une avant d’en ajouter une autre."); $("#d-prio").focus(); return; }
-    const rec = { id: editing || ("d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)), titre: titre.slice(0, 300),
-      resp: $("#d-resp").value.trim().slice(0, 200), ech: /^\d{4}-\d{2}-\d{2}$/.test($("#d-ech").value) ? $("#d-ech").value : "",
+    const old = editing ? decs.find(function (d) { return d.id === editing; }) : null;
+    const id = editing || ("d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
+    const rec = { titre: titre.slice(0, 300),
+      resp: $("#d-resp").value.trim().slice(0, 200), ech: isoDate($("#d-ech").value),
       per: $("#d-per").value, ind: BY[$("#d-ind").value] ? $("#d-ind").value : "", constat: $("#d-constat").value.trim().slice(0, 2000),
-      attendu: $("#d-attendu").value.trim().slice(0, 2000), statut: $("#d-statut").value, prio: prio };
+      attendu: $("#d-attendu").value.trim().slice(0, 2000), statut: $("#d-statut").value, prio: prio,
+      cree: old && old.cree ? old.cree : new Date().toISOString() };
     const wasEdit = !!editing;
-    if (editing) { const k = decs.findIndex(function (d) { return d.id === editing; }); decs[k] = rec; } else decs.unshift(rec);
-    editing = null;
-    const ok = persist();
+    if (busy) return;
+    busy = true; msg.className = "msg"; msg.textContent = "Enregistrement…";
+    const r = await commit([{ col: "decisions", id: id, rec: rec }]);
+    busy = false;
+    if (!r.ok) { fail(r.text); return; }
+    editing = null; store.dirty = false; store.pending = false;
     viewDecisions(m);
     const msg2 = $("#d-msg");
-    msg2.className = "msg" + (ok ? "" : " err");
-    msg2.textContent = (wasEdit ? "Action modifiée" : "Action ajoutée") + (ok ? " et enregistrée sur cet appareil." : " pour cette session uniquement : stockage local indisponible.");
+    msg2.className = "msg" + (r.warn ? " err" : "");
+    msg2.textContent = (wasEdit ? "Action modifiée" : "Action ajoutée") + " et enregistrée " + r.where + ".";
     $("#d-titre").focus();
   });
-  const c = $("#d-cancel"); if (c) c.addEventListener("click", function () { editing = null; viewDecisions(m, true); });
-  const cp = $("#d-clear-prio"); if (cp) cp.addEventListener("click", function () { decs.forEach(function (d) { d.prio = false; }); persist(); viewDecisions(m); });
-  $all("[data-edit]", m).forEach(function (b) { b.addEventListener("click", function () { editing = b.dataset.edit; viewDecisions(m, true); }); });
+  async function quick(ops) {
+    if (busy) return;
+    busy = true; const r = await commit(ops); busy = false;
+    store.pendingDel = null;
+    if (!r.ok) { fail(r.text); return; }
+    viewDecisions(m);
+  }
+  function decOp(d, patch) { const rec = Object.assign({}, d, patch); delete rec.id; return { col: "decisions", id: d.id, rec: rec }; }
+  const c = $("#d-cancel"); if (c) c.addEventListener("click", function () { editing = null; store.dirty = false; viewDecisions(m, true); });
+  const cp = $("#d-clear-prio"); if (cp) cp.addEventListener("click", function () {
+    quick(decs.filter(function (d) { return d.prio; }).map(function (d) { return decOp(d, { prio: false }); }));
+  });
+  $all("[data-edit]", m).forEach(function (b) { b.addEventListener("click", function () { editing = b.dataset.edit; store.dirty = false; viewDecisions(m, true); }); });
   $all("[data-prio]", m).forEach(function (b) {
     b.addEventListener("click", function () {
       const d = decs.find(function (x) { return x.id === b.dataset.prio; });
+      if (!d) return;
       if (!d.prio && decs.filter(function (x) { return x.prio; }).length >= 3) { fail("Trois actions prioritaires sont déjà sélectionnées."); return; }
-      d.prio = !d.prio; persist(); viewDecisions(m);
+      quick([decOp(d, { prio: !d.prio })]);
     });
   });
   $all("[data-del]", m).forEach(function (b) {
     b.addEventListener("click", function () {
-      const d = decs.find(function (x) { return x.id === b.dataset.del; });
-      if (!window.confirm("Supprimer l’action « " + d.titre + " » ?")) return;
-      store.data.decisions = decs.filter(function (x) { return x.id !== d.id; });
-      if (editing === d.id) editing = null;
-      persist(); viewDecisions(m);
+      store.pendingDel = b.dataset.del; viewDecisions(m);
+      const y = $('[data-del-yes="' + CSS.escape(b.dataset.del) + '"]', m); if (y) y.focus();
+    });
+  });
+  $all("[data-del-no]", m).forEach(function (b) {
+    b.addEventListener("click", function () {
+      const id = b.dataset.delNo; store.pendingDel = null; viewDecisions(m);
+      const x = $('[data-del="' + CSS.escape(id) + '"]', m); if (x) x.focus();
+    });
+  });
+  $all("[data-del-yes]", m).forEach(function (b) {
+    b.addEventListener("click", function () {
+      const id = b.dataset.delYes;
+      if (editing === id) editing = null;
+      quick([{ col: "decisions", id: id, del: true }]);
     });
   });
   if (focusForm) { $("#dec-form").scrollIntoView({ block: "start" }); $("#d-titre").focus(); }
@@ -653,12 +776,26 @@ function viewNotFound(m, t) {
 const ROUTES = { synthese: viewSynthese, btoc: viewBtoC, btob: viewBtoB, produits: viewProduits, exploitation: viewExploitation, indicateurs: viewIndicateurs, decisions: viewDecisions };
 const NAV_OF = { fiche: "indicateurs", produit: "produits" };
 let firstRender = true;
+function rerender() {
+  const y = window.scrollY;
+  render();
+  window.scrollTo(0, y);
+}
 function route() {
+  store.pendingDel = null;
+  store.dirty = false; store.pending = false;
+  render();
+  const h1 = $("h1", $("#contenu"));
+  if (!firstRender && h1) { h1.setAttribute("tabindex", "-1"); h1.focus({ preventScroll: true }); window.scrollTo(0, 0); }
+  firstRender = false;
+}
+function render() {
   let h = location.hash.slice(1);
   try { h = decodeURIComponent(h); } catch (e) { /* fragment mal formé */ }
   if (!h || h === "contenu") h = "synthese";
-  const slash = h.indexOf("/");
-  const name = slash < 0 ? h : h.slice(0, slash), arg = slash < 0 ? "" : h.slice(slash + 1);
+  let name = h, arg = "";
+  if (h.indexOf("fiche-") === 0) { name = "fiche"; arg = h.slice(6); }
+  else if (h.indexOf("produit-") === 0) { name = "produit"; arg = h.slice(8); }
   const m = $("#contenu");
   if (name !== "decisions") editing = null;
   if (name === "fiche") viewFiche(m, arg);
@@ -668,15 +805,15 @@ function route() {
   const nav = NAV_OF[name] || name;
   $all("nav.main a").forEach(function (a) { if (a.dataset.r === nav) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   const h1 = $("h1", m);
-  document.title = (h1 ? h1.textContent + " · " : "") + "Les Acacias — Tableau de bord V1.0";
-  if (!firstRender && h1) { h1.setAttribute("tabindex", "-1"); h1.focus({ preventScroll: true }); window.scrollTo(0, 0); }
-  firstRender = false;
+  document.title = (h1 ? h1.textContent + " · " : "") + "Tableau de bord Les Acacias";
 }
 $("#skip").addEventListener("click", function (e) { e.preventDefault(); const m = $("#contenu"); m.focus(); });
 window.addEventListener("hashchange", route);
-window.addEventListener("storage", function (e) { if (e.key === KEY && store.ok) { try { store.data = sanitize(JSON.parse(e.newValue)); } catch (x) {} route(); } });
-loadStore();
+window.addEventListener("storage", function (e) { if (e.key === KEY && store.mode === "local") { try { store.data = sanitize(JSON.parse(e.newValue)); } catch (x) {} onRemote(); } });
+document.documentElement.lang = "fr";
+showStatus();
 route();
+initStorage();
 </script>
-</body>
+
 </html>
