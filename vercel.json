@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/sync-playtomic", "schedule": "15 4 * * *" },
+    { "path": "/api/cron/sync-banque", "schedule": "40 4 * * *" }
+  ],
+  "regions": ["dub1"]
+}
