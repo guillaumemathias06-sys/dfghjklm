@@ -83,7 +83,7 @@ input[type=text],input[type=search],input[type=date],select,textarea{width:100%;
 textarea{min-height:72px;resize:vertical}
 button,.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;min-height:38px;cursor:pointer;text-decoration:none;color:var(--ink)}
 button:hover,.btn:hover{background:var(--surface-2)}
-button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.primary,a.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 button.primary:hover{filter:brightness(1.07)}
 button.danger{color:var(--danger)}
 .seg-switch{align-self:flex-start;display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}

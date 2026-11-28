@@ -21,7 +21,7 @@ export interface SyncResult {
 export async function syncPlaytomic(triggeredBy: string): Promise<SyncResult> {
   if (!playtomicConfig()) return { status: "failed", read: 0, skipped: 0, error: "Playtomic n'est pas configuré : ajoutez PLAYTOMIC_CLIENT_ID, PLAYTOMIC_CLIENT_SECRET et PLAYTOMIC_TENANT_ID dans Vercel." };
   const db = createAdminClient();
-  const { count } = await db.from("sync_runs").select("id", { count: "exact", head: true }).eq("status", "completed");
+  const { count } = await db.from("sync_runs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("source", "playtomic");
   const pastDays = (count ?? 0) === 0 ? FIRST_PAST_DAYS : PAST_DAYS;
   const now = Date.now();
   const start = new Date(now - pastDays * 86_400_000);

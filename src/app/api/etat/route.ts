@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/supabase/server";
 import { json, unauthorized, fail } from "@/lib/data/http";
-import { loadReglages, loadBookings, lastSync, loadFermetures } from "@/lib/data/load";
+import { loadReglages, loadAllBookings, lastSync, loadFermetures } from "@/lib/data/load";
+import { powensConfig } from "@/lib/banque/powens";
 import { countCourts, canonicalSport } from "@/lib/metrics/terrains";
 import { playtomicConfig } from "@/lib/playtomic/api";
 
@@ -15,12 +16,15 @@ export async function GET() {
     db.from("fiche_notes").select("*"),
     db.from("decisions").select("*").order("created_at", { ascending: false }),
     loadReglages(db),
-    loadBookings(db),
+    loadAllBookings(db),
     lastSync(db),
     loadFermetures(db),
   ]);
+  const [comptes, bankSyncs] = await Promise.all([db.from("banque_comptes").select("id, nom, banque, iban_masque, type, structure, solde, a_venir, actif, etat, synchro_le").order("nom"), lastSync(db, "banque")]);
+  const exclus = new Set(reglages.exclus ?? []);
+  const vus = bookings.data.filter((b) => !b.resource_id || !exclus.has(b.resource_id));
   if (notes.error || decisions.error) return fail(notes.error?.message ?? decisions.error?.message ?? "Lecture impossible.");
-  const playtomicCourts = countCourts(bookings.data, { ...reglages, terrains: {} }).bySport;
+  const playtomicCourts = countCourts(vus, { ...reglages, terrains: {} }).bySport;
   // Liste des terrains vus dans Playtomic, pour le registre des fermetures.
   const courtMap = new Map<string, { id: string; nom: string; sport: string }>();
   for (const b of bookings.data) {
@@ -33,7 +37,8 @@ export async function GET() {
     decisions: decisions.data,
     reglages,
     playtomic: { configure: playtomicConfig() !== null, reservations: bookings.data.length, terrainsVus: playtomicCourts, syncs },
-    terrains,
+    terrains: terrains.map((c) => ({ ...c, exclu: exclus.has(c.id) })),
     fermetures,
+    banque: { configure: powensConfig() !== null, comptes: (comptes.data ?? []).map((c) => ({ ...c, id: String(c.id) })), syncs: bankSyncs },
   });
 }

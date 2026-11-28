@@ -2,6 +2,8 @@ import { requireUser } from "@/lib/supabase/server";
 import { json, unauthorized, bad, fail } from "@/lib/data/http";
 import { loadReglages, loadBookings, lastSync, loadFermetures } from "@/lib/data/load";
 import { computeEquipe, type PaieRow } from "@/lib/metrics/equipe";
+import { computeBanque, type CompteRow, type OperationRow } from "@/lib/metrics/banque";
+import { selectAll } from "@/lib/supabase/selectAll";
 import { computeTerrains, resolvePeriode, previousPeriode, trend, PERIODES, type PeriodeId, type Sport, type Creneau } from "@/lib/metrics/terrains";
 
 export const dynamic = "force-dynamic";
@@ -18,23 +20,30 @@ export async function GET(req: Request) {
   if (!(periodeId in PERIODES)) return bad("Période inconnue.");
   const sportLbl = url.searchParams.get("sport") || "";
   const creneauLbl = url.searchParams.get("creneau") || "";
+  const structure = url.searchParams.get("structure") || "";
+  if (structure && structure !== "Association" && structure !== "SARL") return bad("Structure inconnue.");
   if (sportLbl && !SPORTS[sportLbl]) return bad("Sport inconnu.");
   if (creneauLbl && !CRENEAUX[creneauLbl]) return bad("Créneau inconnu.");
 
-  const [reglages, bookings, syncs, paie, fermetures] = await Promise.all([
-    loadReglages(ctx.supabase),
-    loadBookings(ctx.supabase),
+  const reglages = await loadReglages(ctx.supabase);
+  const [bookings, syncs, paie, fermetures, comptes, ops] = await Promise.all([
+    loadBookings(ctx.supabase, reglages.exclus),
     lastSync(ctx.supabase),
     ctx.supabase.from("paie_mensuelle").select("*").order("mois"),
     loadFermetures(ctx.supabase),
+    ctx.supabase.from("banque_comptes").select("id, nom, banque, structure, solde, a_venir, actif, etat, synchro_le"),
+    selectAll<OperationRow>((from, to) => ctx.supabase.from("banque_operations").select("compte_id, date_op, montant, a_venir, virement_interne").order("id").range(from, to)),
   ]);
   if (bookings.error) return fail(`Lecture des réservations impossible : ${bookings.error}`);
   const p = resolvePeriode(periodeId);
   // Équipe : indépendant de Playtomic, du sport et du créneau.
   const equipe = computeEquipe((paie.data ?? []) as PaieRow[], p.fin, true);
+  const banque = computeBanque((comptes.data ?? []) as CompteRow[], ops.data, { ...p, structure });
+  Object.assign(equipe.mesures, banque);
+  const sources = { paie: (paie.data ?? []).length > 0, banque: (comptes.data ?? []).length > 0 };
   const lastOk = syncs.find((s) => s.status === "completed" || s.status === "partial");
   if (!lastOk)
-    return json({ connecte: false, raison: "Aucune synchronisation Playtomic réussie pour l'instant.", periode: { id: periodeId, libelle: PERIODES[periodeId], ...p }, mesures: equipe.mesures, tendances: equipe.tendances, sources: { paie: (paie.data ?? []).length > 0 } });
+    return json({ connecte: false, raison: "Aucune synchronisation Playtomic réussie pour l'instant.", periode: { id: periodeId, libelle: PERIODES[periodeId], ...p }, mesures: equipe.mesures, tendances: equipe.tendances, sources });
 
   const prev = previousPeriode(periodeId, p);
   const scope = { sport: sportLbl ? SPORTS[sportLbl] : null, creneau: creneauLbl ? CRENEAUX[creneauLbl] : null };
@@ -50,6 +59,6 @@ export async function GET(req: Request) {
     synchro: lastOk.finished_at ?? lastOk.started_at,
     mesures: cur,
     tendances,
-    sources: { paie: (paie.data ?? []).length > 0 },
+    sources,
   });
 }

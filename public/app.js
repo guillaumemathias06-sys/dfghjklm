@@ -81,6 +81,7 @@ const store = { mode: "boot", loaded: false, broken: false, last: null, canWrite
   reglages: null, playtomic: null, terrains: [], fermetures: [], pendingFerm: null };
 const M = { loading: false, res: null, err: "" };
 const PAIE = ["cout-personnel", "heures-equipe"];
+const BANQUE = ["solde", "encaissements"];
 const LIVE = ["capacite", "jouables", "louables", "reservees", "occupation", "usage", "vides", "revenu-heure", "prix-heure", "duree", "annulations", "perdues", "affectees"];
 const CAUSES = [["pluie", "Pluie"], ["humidite", "Humidité"], ["chaleur", "Chaleur"], ["panne", "Panne"], ["autre", "Autre"]];
 function str(v, max) { return typeof v === "string" ? v.slice(0, max || 2000) : ""; }
@@ -156,7 +157,7 @@ async function loadAll() {
     const l = []; (s.decisions || []).forEach(function (r) { const d = decFromRow(r); if (d) l.push(d); });
     store.data = { v: 1, notes: n, decisions: sortDecs(l) };
     store.reglages = s.reglages; store.playtomic = s.playtomic;
-    store.terrains = Array.isArray(s.terrains) ? s.terrains : []; store.fermetures = Array.isArray(s.fermetures) ? s.fermetures : [];
+    store.terrains = Array.isArray(s.terrains) ? s.terrains : []; store.banque = s.banque || null; store.fermetures = Array.isArray(s.fermetures) ? s.fermetures : [];
     store.loaded = true; store.broken = false;
   } catch (e) { store.broken = true; }
   showStatus();
@@ -167,7 +168,7 @@ let mesuresSeq = 0;
 async function loadMesures() {
   const seq = ++mesuresSeq;
   M.loading = true; M.err = "";
-  const q = new URLSearchParams({ periode: scope.periode || "28j", sport: scope.sport || "", creneau: scope.creneau || "" });
+  const q = new URLSearchParams({ periode: scope.periode || "28j", sport: scope.sport || "", creneau: scope.creneau || "", structure: scope.structure || "" });
   try { const r = await api("GET", "/api/mesures?" + q.toString()); if (seq !== mesuresSeq) return; M.res = r; }
   catch (e) { if (seq !== mesuresSeq) return; M.res = null; M.err = e && e.message ? e.message : "Mesures indisponibles."; }
   M.loading = false;
@@ -184,6 +185,7 @@ function sourceOf(id) {
   if ((id === "perdues" || id === "affectees") && M.res.connecte) return id === "perdues" ? "Registre des fermetures" : "Registre des fermetures et Playtomic";
   if (LIVE.indexOf(id) >= 0 && M.res.connecte) return "Playtomic (réservations)";
   if (PAIE.indexOf(id) >= 0 && M.res.sources && M.res.sources.paie) return "Bulletins de paie";
+  if (BANQUE.indexOf(id) >= 0 && M.res.sources && M.res.sources.banque) return "Comptes bancaires (Powens)";
   return null;
 }
 /* Libellé de période d'une mesure : mois de paie, ou période et filtres choisis. */
@@ -258,7 +260,7 @@ function scopeBar(active, note) {
       }).join("") + "</select></div>";
   });
   h += "</form>";
-  h += '<p class="note">' + esc(note || "Période, sport et créneau s’appliquent aux mesures Terrains calculées depuis Playtomic. Association / SARL et activité cadrent l’analyse à venir : aucune source ne les renseigne encore.") + "</p>";
+  h += '<p class="note">' + esc(note || "Période, sport et créneau s’appliquent aux mesures Terrains (Playtomic). Association / SARL s’applique aux comptes bancaires. L’activité cadre l’analyse à venir.") + "</p>";
   return h;
 }
 function bindScope(onChange) {
@@ -266,7 +268,7 @@ function bindScope(onChange) {
     s.addEventListener("change", function () {
       scope[s.dataset.k] = s.value;
       if (onChange) onChange();
-      if (["periode", "sport", "creneau"].indexOf(s.dataset.k) >= 0) { s.blur(); loadMesures(); }
+      if (["periode", "sport", "creneau", "structure"].indexOf(s.dataset.k) >= 0) { s.blur(); loadMesures(); }
     });
   });
 }
@@ -614,7 +616,7 @@ function viewDecisions(m, focusForm) {
 
 /* Réglages : horaires, début de soirée, terrains, synchronisation Playtomic. */
 /* Messages qui doivent survivre au réaffichage qui suit un rechargement des données. */
-const flash = { reg: null, sync: null };
+const flash = { reg: null, sync: null, bq: null };
 function flashHtml(k) { const f = flash[k]; return f ? esc(f.text) : ""; }
 function flashCls(k) { const f = flash[k]; return "msg" + (f && f.err ? " err" : ""); }
 const DAYS = [["mon", "Lundi"], ["tue", "Mardi"], ["wed", "Mercredi"], ["thu", "Jeudi"], ["fri", "Vendredi"], ["sat", "Samedi"], ["sun", "Dimanche"]];
@@ -642,7 +644,13 @@ function viewReglages(m) {
       '<span class="small muted">' + (seen ? seen + " terrain(s) vu(s) dans Playtomic" : "Aucun terrain vu dans Playtomic") + " · laissez vide pour utiliser Playtomic</span>" +
       (seen && r.terrains[s[0]] && r.terrains[s[0]] !== seen ? '<span class="msg err">Le réglage (' + r.terrains[s[0]] + ") diffère du nombre de terrains réservés dans Playtomic (" + seen + ") : vérifiez-le, il sert à calculer la capacité.</span>" : "") + "</div>";
   });
-  h += '</div><div class="actions"><button type="submit" class="primary">Enregistrer les réglages</button><span class="' + flashCls("reg") + '" id="reg-msg" role="status" aria-live="polite">' + flashHtml("reg") + '</span></div></form>';
+  h += '</div>';
+  if (store.terrains.length) {
+    h += '<fieldset style="margin-top:12px"><legend>Terrains à ignorer</legend><p class="small muted" style="margin:0 0 6px">Cochez une ressource Playtomic qui ne correspond à aucun terrain réel : ses réservations sont exclues de tous les calculs.</p><div class="radios">' +
+      store.terrains.map(function (c) { return '<label><input type="checkbox" class="t-exclu" value="' + esc(c.id) + '"' + (c.exclu ? " checked" : "") + "> " + esc(c.nom) + "</label>"; }).join("") + "</div></fieldset>";
+  }
+  h += '<div class="actions"><button type="submit" class="primary">Enregistrer les réglages</button><span class="' + flashCls("reg") + '" id="reg-msg" role="status" aria-live="polite">' + flashHtml("reg") + '</span></div></form>';
+  h += banqueHtml();
   h += fermeturesHtml();
   h += '<section class="card" style="margin-top:14px" aria-labelledby="h-pt"><h2 id="h-pt" style="margin-top:0">Playtomic</h2>' +
     (pt.configure ? '<p>Connexion configurée. ' + pt.reservations + " réservation(s) en base. Synchronisation automatique chaque nuit.</p>"
@@ -676,7 +684,7 @@ function viewReglages(m) {
     }
     msg.className = "msg"; msg.textContent = "Enregistrement…";
     try {
-      await api("PUT", "/api/reglages", { horaires: horaires, debut_soiree: soir, terrains: terrains });
+      await api("PUT", "/api/reglages", { horaires: horaires, debut_soiree: soir, terrains: terrains, exclus: $all(".t-exclu:checked", m).map(function (c) { return c.value; }) });
       store.dirty = false; store.last = new Date();
       flash.reg = { text: "Réglages enregistrés. Les mesures sont recalculées.", err: false };
       await loadAll();
@@ -692,6 +700,52 @@ function viewReglages(m) {
     await loadAll();
   });
   bindFermetures(m);
+  bindBanque(m);
+}
+
+/* Banque : connexion Powens, rattachement des comptes à l'association ou à la SARL. */
+const banqueRetour = (function () {
+  try { const v = new URLSearchParams(location.search).get("banque"); if (v) history.replaceState(null, "", location.pathname + location.hash); return v; } catch (e) { return null; }
+})();
+function banqueHtml() {
+  const b = store.banque || { configure: false, comptes: [], syncs: [] };
+  const eur = function (v) { return v === null || v === undefined ? "—" : Number(v).toLocaleString("fr-FR", { style: "currency", currency: "EUR" }); };
+  const retour = banqueRetour === "connecte" ? { t: "Banque connectée : comptes et opérations synchronisés.", err: false }
+    : banqueRetour === "non_configure" ? { t: "Powens n’est pas configuré : ajoutez POWENS_CLIENT_ID, POWENS_CLIENT_SECRET et POWENS_DOMAIN dans Vercel.", err: true }
+    : banqueRetour ? { t: "Connexion bancaire interrompue : " + banqueRetour, err: true } : null;
+  let h = '<section class="card" style="margin-top:14px" aria-labelledby="h-bq"><h2 id="h-bq" style="margin-top:0">Banque</h2>' +
+    '<p class="small muted">Connexion en lecture seule via Powens (agrégateur agréé, comme JARVIS). Le consentement de chaque banque est à renouveler tous les 180 jours. Solde, encaissements et opérations à venir alimentent les fiches Finance.</p>' +
+    (retour ? '<p class="msg' + (retour.err ? " err" : "") + '" role="status">' + esc(retour.t) + "</p>" : "") +
+    (b.configure ? "" : '<p class="msg err">Identifiants Powens absents : ajoutez POWENS_CLIENT_ID, POWENS_CLIENT_SECRET et POWENS_DOMAIN dans Vercel, puis redéployez.</p>') +
+    '<div class="actions"><a class="btn primary" href="/api/banque/connect"' + (b.configure ? "" : ' aria-disabled="true" tabindex="-1" style="pointer-events:none;opacity:.5"') + ">" + (b.comptes.length ? "Connecter une autre banque ou renouveler" : "Connecter une banque") + "</a>" +
+    '<button type="button" id="bq-sync"' + (b.comptes.length ? "" : " disabled") + '>Synchroniser les comptes</button><span class="' + flashCls("bq") + '" id="bq-msg" role="status" aria-live="polite">' + flashHtml("bq") + "</span></div>";
+  if (b.comptes.length) {
+    h += '<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th scope="col">Compte</th><th scope="col">Solde</th><th scope="col">Structure</th><th scope="col">État</th></tr></thead><tbody>' +
+      b.comptes.map(function (c) {
+        return "<tr><td>" + esc(c.nom) + '<br><span class="small muted">' + esc([c.banque, c.iban_masque, c.actif ? "" : "désactivé"].filter(Boolean).join(" · ")) + "</span></td><td>" + esc(eur(c.solde)) +
+          (c.a_venir ? '<br><span class="small muted">à venir ' + esc(eur(c.a_venir)) + "</span>" : "") + "</td>" +
+          '<td><label class="sr" for="bs-' + esc(c.id) + '">Structure de ' + esc(c.nom) + '</label><select id="bs-' + esc(c.id) + '" data-compte="' + esc(c.id) + '"><option value="">À préciser</option><option' + (c.structure === "Association" ? " selected" : "") + ">Association</option><option" + (c.structure === "SARL" ? " selected" : "") + ">SARL</option></select></td>" +
+          "<td>" + esc(c.etat ? "Consentement à renouveler (" + c.etat + ")" : c.synchro_le ? "À jour · " + fmtDateTime(c.synchro_le) : "—") + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+  }
+  const s = (b.syncs || [])[0];
+  if (s) h += '<p class="small muted" style="margin-top:8px">Dernière synchronisation : ' + esc(fmtDateTime(s.started_at)) + " · " + esc({ completed: "terminée", partial: "partielle", failed: "échec", running: "en cours" }[s.status] || s.status) + " · " + esc(String(s.records_read)) + " opération(s)" + (s.error ? " · " + esc(s.error) : "") + "</p>";
+  return h + "</section>";
+}
+function bindBanque(m) {
+  $all("[data-compte]", m).forEach(function (sel) {
+    sel.addEventListener("change", async function () {
+      try { await api("PUT", "/api/banque/comptes/" + encodeURIComponent(sel.dataset.compte), { structure: sel.value }); flash.bq = { text: "Structure enregistrée.", err: false }; sel.blur(); await loadAll(); }
+      catch (err) { flash.bq = { text: err.message, err: true }; rerender(); }
+    });
+  });
+  const b = $("#bq-sync");
+  if (b) b.addEventListener("click", async function () {
+    b.disabled = true; $("#bq-msg").className = "msg"; $("#bq-msg").textContent = "Synchronisation bancaire en cours…";
+    try { const r = await api("POST", "/api/banque/sync"); flash.bq = { text: r.read + " opération(s) lue(s)" + (r.error ? " · " + r.error : "") + ".", err: r.status === "failed" }; }
+    catch (err) { flash.bq = { text: err.message, err: true }; }
+    await loadAll();
+  });
 }
 
 /* Registre des fermetures : alimente « Heures de terrain perdues » et « Réservations touchées ». */
@@ -700,7 +754,7 @@ function fmtDT(iso) { const d = new Date(iso); return d.toLocaleDateString("fr-F
 function fermeturesHtml() {
   const ts = store.terrains;
   const bySport = {};
-  ts.forEach(function (c) { (bySport[c.sport] = bySport[c.sport] || []).push(c); });
+  ts.filter(function (c) { return !c.exclu; }).forEach(function (c) { (bySport[c.sport] = bySport[c.sport] || []).push(c); });
   const sportLbl = { PADEL: "Padel", TENNIS: "Tennis", FOOTBALL: "Foot à 5" };
   const nameOf = {}; ts.forEach(function (c) { nameOf[c.id] = c.nom; });
   let h = '<form class="card" id="ferm-form" style="margin-top:14px" novalidate aria-labelledby="h-ferm"><h2 id="h-ferm" style="margin-top:0">Registre des fermetures</h2>' +
@@ -774,7 +828,7 @@ function rerender() {
   window.scrollTo(0, y);
 }
 function route() {
-  store.pendingDel = null; store.pendingFerm = null; flash.reg = null; flash.sync = null;
+  store.pendingDel = null; store.pendingFerm = null; flash.reg = null; flash.sync = null; flash.bq = null;
   store.dirty = false; store.pending = false;
   render();
   const h1 = $("h1", $("#contenu"));

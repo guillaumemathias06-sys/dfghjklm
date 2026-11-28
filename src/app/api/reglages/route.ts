@@ -11,7 +11,7 @@ export async function PUT(req: Request) {
   for (const [d, h] of Object.entries(v.horaires)) if (h && h.close !== "00:00" && h.close <= h.open) return bad(`Horaire du ${d} : la fermeture doit suivre l'ouverture.`);
   const horaires = Object.fromEntries(Object.entries(v.horaires).filter(([, h]) => h));
   const terrains = Object.fromEntries(Object.entries(v.terrains).filter(([, n]) => typeof n === "number" && n > 0));
-  const { error } = await u.supabase.from("reglages").upsert({ id: 1, horaires, debut_soiree: v.debut_soiree, terrains, updated_at: new Date().toISOString() });
+  const { error } = await u.supabase.from("reglages").upsert({ id: 1, horaires, debut_soiree: v.debut_soiree, terrains, exclus: v.exclus, updated_at: new Date().toISOString() });
   if (error) return fail(error.message);
   return json({ ok: true });
 }

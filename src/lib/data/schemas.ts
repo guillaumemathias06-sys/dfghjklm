@@ -29,5 +29,6 @@ const jour = z.object({ open: hhmm, close: hhmm }).nullable();
 export const reglagesSchema = z.object({
   horaires: z.object({ mon: jour, tue: jour, wed: jour, thu: jour, fri: jour, sat: jour, sun: jour }),
   debut_soiree: hhmm,
+  exclus: z.array(z.string().max(80)).max(50).default([]),
   terrains: z.object({ PADEL: z.number().int().min(0).max(50).nullable(), TENNIS: z.number().int().min(0).max(50).nullable(), FOOTBALL: z.number().int().min(0).max(50).nullable() }),
 });

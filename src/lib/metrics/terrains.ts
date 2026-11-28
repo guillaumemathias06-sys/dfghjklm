@@ -19,6 +19,7 @@ export interface Reglages {
   horaires: Horaires;
   debut_soiree: string;
   terrains: Partial<Record<string, number>>;
+  exclus?: string[];
 }
 
 export interface BookingRow {
