@@ -80,6 +80,7 @@ const store = { mode: "boot", loaded: false, broken: false, last: null, canWrite
   data: { v: 1, notes: {}, decisions: [] }, pending: false, dirty: false, pendingDel: null,
   reglages: null, playtomic: null };
 const M = { loading: false, res: null, err: "" };
+const PAIE = ["cout-personnel", "heures-equipe"];
 const LIVE = ["capacite", "jouables", "louables", "reservees", "occupation", "usage", "vides", "revenu-heure", "prix-heure", "duree", "annulations"];
 function str(v, max) { return typeof v === "string" ? v.slice(0, max || 2000) : ""; }
 function isoDate(v) { return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ""; }
@@ -172,16 +173,29 @@ async function loadMesures() {
 }
 /* Une mesure calculée, ou null si indisponible. */
 function metric(id) {
-  if (!M.res || !M.res.connecte || !M.res.mesures) return null;
+  if (!M.res || !M.res.mesures) return null;
   const m = M.res.mesures[id];
   return m && m.status !== "na" ? m : null;
 }
+function sourceOf(id) {
+  if (!M.res) return null;
+  if (LIVE.indexOf(id) >= 0 && M.res.connecte) return "Playtomic (réservations)";
+  if (PAIE.indexOf(id) >= 0 && M.res.sources && M.res.sources.paie) return "Bulletins de paie";
+  return null;
+}
+/* Libellé de période d'une mesure : mois de paie, ou période et filtres choisis. */
+function periodOf(id) {
+  const m = metric(id);
+  if (!m) return "";
+  if (m.periode) return m.periode;
+  return M.res.periode.libelle + (scope.sport ? " · " + scope.sport : "") + (scope.creneau ? " · " + scope.creneau : "");
+}
 function metricReason(id) {
-  if (LIVE.indexOf(id) < 0) return null;
+  if (LIVE.indexOf(id) < 0 && PAIE.indexOf(id) < 0) return null;
   if (M.loading && !M.res) return "Calcul en cours…";
   if (M.err) return M.err;
   if (!M.res) return null;
-  if (!M.res.connecte) return M.res.raison;
+  if (LIVE.indexOf(id) >= 0 && !M.res.connecte) return M.res.raison;
   const m = M.res.mesures[id];
   return m && m.status === "na" ? m.reason : null;
 }
@@ -190,7 +204,7 @@ function valHtml(id) {
   return m ? '<span class="val">' + esc(m.display) + "</span>" : NA;
 }
 function trendHtml(id) {
-  const t = M.res && M.res.connecte && M.res.tendances ? M.res.tendances[id] : null;
+  const t = M.res && M.res.tendances ? M.res.tendances[id] : null;
   return t ? '<span class="val">' + esc(t) + '</span><span class="sr"> par rapport à la période précédente</span>' : NA;
 }
 
@@ -200,7 +214,8 @@ const NA = '<span class="na"><span aria-hidden="true">—</span><span class="sr"
 function segTag(s) { return '<span class="tag seg-' + esc(s) + '">' + esc(s === "Commun" ? "Commun" : s) + "</span>"; }
 function avTag(id) { const a = note(id).av; return '<span class="tag av-' + AV.indexOf(a) + '"><span class="sr">Avancement : </span>' + esc(a) + "</span>"; }
 function connTag(id) {
-  if (id && LIVE.indexOf(id) >= 0 && M.res && M.res.connecte) return '<span class="tag live">Connexion : Playtomic</span>';
+  const s = id ? sourceOf(id) : null;
+  if (s) return '<span class="tag live">Connexion : ' + esc(s.split(" (")[0]) + "</span>";
   return '<span class="tag conn">Connexion : À relier</span>';
 }
 function estTag(id) { const m = metric(id); return m && m.status === "estimate" ? '<span class="tag est">Estimation</span>' : ""; }
@@ -269,7 +284,7 @@ function viewSynthese(m) {
     $("#cards").innerHTML = cards.map(function (c) {
       const segs = []; c.ids.forEach(function (id) { if (segs.indexOf(BY[id].seg) < 0) segs.push(BY[id].seg); });
       const main = c.ids[0];
-      const per = metric(main) && M.res.periode ? '<p class="small muted" style="margin:0">' + esc(BY[main].l) + " · " + esc(M.res.periode.libelle) + (scope.sport ? " · " + esc(scope.sport) : "") + (scope.creneau ? " · " + esc(scope.creneau) : "") + "</p>" : "";
+      const per = metric(main) ? '<p class="small muted" style="margin:0">' + esc(BY[main].l) + " · " + esc(periodOf(main)) + "</p>" : "";
       return '<article class="card"><h3>' + esc(c.t) + '</h3><div class="tags">' + segs.map(segTag).join("") + connTag(main) + estTag(main) + "</div>" +
         '<dl class="kv"><div><dt>Valeur</dt><dd>' + valHtml(main) + "</dd></div><div><dt>Objectif</dt><dd>" + NA + "</dd></div><div><dt>Écart</dt><dd>" + NA + "</dd></div><div><dt>Tendance</dt><dd>" + trendHtml(main) + "</dd></div></dl>" + per +
         '<p class="decision"><strong>Décision éclairée :</strong> ' + esc(c.d) + "</p>" +
@@ -369,7 +384,7 @@ const reg = { q: "", seg: "", fam: "", av: "" };
 function norm(s) { return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
 function viewIndicateurs(m) {
   let h = "<h1>Indicateurs à relier</h1>" +
-    '<p class="lede">Registre complet des ' + IND.length + " fiches, y compris celles qui ne figurent pas en synthèse. " + LIVE.length + " fiches Terrains sont calculées depuis Playtomic ; les autres restent « À relier » tant que leur source n’est pas branchée.</p>";
+    '<p class="lede">Registre complet des ' + IND.length + " fiches, y compris celles qui ne figurent pas en synthèse. " + LIVE.length + " fiches Terrains sont calculées depuis Playtomic et " + PAIE.length + " fiches Équipe depuis les bulletins de paie ; les autres restent « À relier » tant que leur source n’est pas branchée.</p>";
   h += '<form class="filters" role="search" aria-label="Rechercher et filtrer les fiches" onsubmit="return false">' +
     '<div class="field wide"><label for="r-q">Recherche (libellé, identifiant, méthode, source)</label><input type="search" id="r-q" autocomplete="off" value="' + esc(reg.q) + '"></div>' +
     '<div class="field"><label for="r-seg">Périmètre</label><select id="r-seg"><option value="">Tous</option>' + SEGS.map(function (s) { return "<option" + (reg.seg === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></div>" +
@@ -417,10 +432,10 @@ function viewFiche(m, id) {
     "<dt>Unité</dt><dd>" + esc(i.u) + "</dd><dt>Fréquence proposée</dt><dd>" + esc(i.freq) + "</dd><dt>Méthode</dt><dd>" + esc(i.m) + "</dd>" +
     "<dt>Source envisagée</dt><dd>" + esc(i.src) + "</dd></dl></section>" +
     '<section class="card" style="margin-top:12px" aria-labelledby="h-val"><h2 id="h-val" style="margin-top:0">État de la donnée</h2><dl class="facts">' +
-    "<dt>Valeur</dt><dd>" + valHtml(id) + (metric(id) ? ' <span class="small muted">' + esc(M.res.periode.libelle) + (scope.sport ? " · " + esc(scope.sport) : "") + (scope.creneau ? " · " + esc(scope.creneau) : "") + "</span>" : "") +
+    "<dt>Valeur</dt><dd>" + valHtml(id) + (metric(id) ? ' <span class="small muted">' + esc(periodOf(id)) + "</span>" : "") +
     (metric(id) ? '<ul class="lines">' + metric(id).lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" : (metricReason(id) ? '<p class="small muted" style="margin:4px 0 0">' + esc(metricReason(id)) + "</p>" : "")) +
     "</dd><dt>Objectif / seuil</dt><dd>" + NA + " <span class=\"small muted\">à valider sur l’historique comparable</span></dd><dt>Tendance</dt><dd>" + trendHtml(id) +
-    "</dd><dt>Connexion</dt><dd>" + (LIVE.indexOf(id) >= 0 && M.res && M.res.connecte ? "Playtomic (réservations)" : "À relier") + "</dd><dt>Dernière synchronisation</dt><dd>" + (LIVE.indexOf(id) >= 0 && M.res && M.res.connecte ? esc(fmtDateTime(M.res.synchro)) : NA) + "</dd></dl>" +
+    "</dd><dt>Connexion</dt><dd>" + (sourceOf(id) ? esc(sourceOf(id)) : "À relier") + "</dd><dt>Dernière synchronisation</dt><dd>" + (LIVE.indexOf(id) >= 0 && sourceOf(id) ? esc(fmtDateTime(M.res.synchro)) : PAIE.indexOf(id) >= 0 && sourceOf(id) ? "Import des bulletins (" + esc(metric(id) ? metric(id).periode.replace("Paie de ", "jusqu’à ") : "") + ")" : NA) + "</dd></dl>" +
     (LIVE.indexOf(id) >= 0 ? scopeBar(null, "Période, sport et créneau recalculent cette mesure.") : "") + "</section>" +
     '<section class="card" style="margin-top:12px" aria-labelledby="h-use"><h2 id="h-use" style="margin-top:0">Utilisée dans</h2>' +
     (inCards.length || inProds.length
@@ -457,7 +472,7 @@ function viewFiche(m, id) {
     const msg = $("#n-msg");
     if (!msg) return;
     msg.className = "msg" + (r.warn ? " err" : "");
-    msg.textContent = "Fiche enregistrée " + r.where + ". Avancement : " + rec.av + ". Connexion : " + (LIVE.indexOf(id) >= 0 && M.res && M.res.connecte ? "Playtomic." : "À relier.");
+    msg.textContent = "Fiche enregistrée " + r.where + ". Avancement : " + rec.av + ". Connexion : " + (sourceOf(id) ? sourceOf(id) + "." : "À relier.");
   });
 }
 

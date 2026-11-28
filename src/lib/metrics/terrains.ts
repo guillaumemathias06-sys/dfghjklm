@@ -34,7 +34,7 @@ export interface BookingRow {
 }
 
 export type Metric =
-  | { status: "ok" | "estimate"; value: number; unit: string; display: string; lines: string[] }
+  | { status: "ok" | "estimate"; value: number; unit: string; display: string; lines: string[]; periode?: string }
   | { status: "na"; reason: string };
 
 /** Locations proposées au public (réservation de terrain et partie ouverte). */
