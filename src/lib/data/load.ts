@@ -1,7 +1,13 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { selectAll } from "@/lib/supabase/selectAll";
-import type { BookingRow, Reglages } from "@/lib/metrics/terrains";
+import type { BookingRow, Fermeture, Reglages } from "@/lib/metrics/terrains";
+
+export async function loadFermetures(db: SupabaseClient): Promise<(Fermeture & { note: string })[]> {
+  const { data } = await db.from("fermetures").select("id, debut, fin, terrains, cause, note").order("created_at");
+  return (data ?? []) as (Fermeture & { note: string })[];
+}
+
 
 export async function loadReglages(db: SupabaseClient): Promise<Reglages> {
   const { data } = await db.from("reglages").select("horaires, debut_soiree, terrains").eq("id", 1).maybeSingle();
@@ -14,7 +20,7 @@ export async function loadReglages(db: SupabaseClient): Promise<Reglages> {
 
 export async function loadBookings(db: SupabaseClient): Promise<{ data: BookingRow[]; error: string | null }> {
   return selectAll<BookingRow>((from, to) =>
-    db.from("playtomic_bookings").select("booking_id, resource_id, sport_id, booking_type, start_at, end_at, price_amount, price_currency, is_canceled").order("booking_id").range(from, to)
+    db.from("playtomic_bookings").select("booking_id, resource_id, resource_name, sport_id, booking_type, start_at, end_at, price_amount, price_currency, is_canceled").order("booking_id").range(from, to)
   );
 }
 

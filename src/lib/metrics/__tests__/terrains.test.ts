@@ -64,3 +64,33 @@ describe("périodes", () => {
     expect(parisParts("2026-07-01T22:30:00Z")).toEqual({ date: "2026-07-02", min: 30 });
   });
 });
+
+describe("types de réservation, plusieurs jours et fermetures", () => {
+  const base: Reglages = { horaires: { mon: { open: "09:00", close: "23:00" }, tue: { open: "09:00", close: "23:00" }, wed: { open: "09:00", close: "23:00" } }, debut_soiree: "18:00", terrains: {} };
+  it("compte les réservations récurrentes comme des locations", () => {
+    const m = computeTerrains([b("r", "c1", "2026-11-16T18:00:00Z", "2026-11-16T19:00:00Z", { booking_type: "RECURRING_BOOKING" })], base, { debut: "2026-11-16", fin: "2026-11-17", sport: "PADEL", creneau: null });
+    expect(m.reservees).toMatchObject({ value: 1 });
+  });
+  it("découpe un tournoi sur plusieurs jours", () => {
+    // lundi 9:00 → mercredi 12:00 (Paris) sur c1 : 14 h + 14 h + 3 h
+    const t = b("t", "c1", "2026-11-16T08:00:00Z", "2026-11-18T11:00:00Z", { booking_type: "TOURNAMENT", price_amount: 0 });
+    const m = computeTerrains([t], base, { debut: "2026-11-16", fin: "2026-11-19", sport: "PADEL", creneau: null });
+    expect((m.usage as { value: number }).value).toBeCloseTo((31 / 42) * 100);
+  });
+  it("déduit les fermetures une seule fois et rapproche les annulations", () => {
+    const rows = [
+      b("a", "c1", "2026-11-16T09:00:00Z", "2026-11-16T10:00:00Z", { is_canceled: true }), // 10:00-11:00 Paris
+      b("k", "c2", "2026-11-16T17:00:00Z", "2026-11-16T18:00:00Z"),
+    ];
+    const f = [
+      { id: "1", debut: "2026-11-16T08:00:00Z", fin: "2026-11-16T11:00:00Z", terrains: [], cause: "pluie" as const }, // 9-12 Paris, tous
+      { id: "2", debut: "2026-11-16T10:00:00Z", fin: "2026-11-16T12:00:00Z", terrains: ["c1"], cause: "panne" as const }, // 11-13, chevauche
+    ];
+    const m = computeTerrains(rows, base, { debut: "2026-11-16", fin: "2026-11-17", sport: "PADEL", creneau: null }, f);
+    // c1 : 9-13 = 4 h ; c2 : 9-12 = 3 h → 7 h ; pluie 6 h, panne 1 h
+    expect(m.perdues).toMatchObject({ status: "ok", value: 7 });
+    expect(m.jouables).toMatchObject({ value: 28 - 7 });
+    expect(m.affectees).toMatchObject({ value: 1 });
+    expect(m.anticipation.status).toBe("na");
+  });
+});

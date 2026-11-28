@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/supabase/server";
 import { json, unauthorized, bad, fail } from "@/lib/data/http";
-import { loadReglages, loadBookings, lastSync } from "@/lib/data/load";
+import { loadReglages, loadBookings, lastSync, loadFermetures } from "@/lib/data/load";
 import { computeEquipe, type PaieRow } from "@/lib/metrics/equipe";
 import { computeTerrains, resolvePeriode, previousPeriode, trend, PERIODES, type PeriodeId, type Sport, type Creneau } from "@/lib/metrics/terrains";
 
@@ -21,11 +21,12 @@ export async function GET(req: Request) {
   if (sportLbl && !SPORTS[sportLbl]) return bad("Sport inconnu.");
   if (creneauLbl && !CRENEAUX[creneauLbl]) return bad("Créneau inconnu.");
 
-  const [reglages, bookings, syncs, paie] = await Promise.all([
+  const [reglages, bookings, syncs, paie, fermetures] = await Promise.all([
     loadReglages(ctx.supabase),
     loadBookings(ctx.supabase),
     lastSync(ctx.supabase),
     ctx.supabase.from("paie_mensuelle").select("*").order("mois"),
+    loadFermetures(ctx.supabase),
   ]);
   if (bookings.error) return fail(`Lecture des réservations impossible : ${bookings.error}`);
   const p = resolvePeriode(periodeId);
@@ -37,8 +38,8 @@ export async function GET(req: Request) {
 
   const prev = previousPeriode(periodeId, p);
   const scope = { sport: sportLbl ? SPORTS[sportLbl] : null, creneau: creneauLbl ? CRENEAUX[creneauLbl] : null };
-  const cur = computeTerrains(bookings.data, reglages, { ...scope, ...p });
-  const before = computeTerrains(bookings.data, reglages, { ...scope, ...prev });
+  const cur = computeTerrains(bookings.data, reglages, { ...scope, ...p }, fermetures);
+  const before = computeTerrains(bookings.data, reglages, { ...scope, ...prev }, fermetures);
   const tendances: Record<string, string | null> = {};
   for (const id of Object.keys(cur)) tendances[id] = trend(cur[id], before[id]);
   Object.assign(cur, equipe.mesures);

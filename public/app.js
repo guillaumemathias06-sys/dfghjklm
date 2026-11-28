@@ -78,10 +78,11 @@ const RULES = [
 /* ===== Données : API du site (Supabase côté serveur) ===== */
 const store = { mode: "boot", loaded: false, broken: false, last: null, canWrite: true,
   data: { v: 1, notes: {}, decisions: [] }, pending: false, dirty: false, pendingDel: null,
-  reglages: null, playtomic: null };
+  reglages: null, playtomic: null, terrains: [], fermetures: [], pendingFerm: null };
 const M = { loading: false, res: null, err: "" };
 const PAIE = ["cout-personnel", "heures-equipe"];
-const LIVE = ["capacite", "jouables", "louables", "reservees", "occupation", "usage", "vides", "revenu-heure", "prix-heure", "duree", "annulations"];
+const LIVE = ["capacite", "jouables", "louables", "reservees", "occupation", "usage", "vides", "revenu-heure", "prix-heure", "duree", "annulations", "perdues", "affectees"];
+const CAUSES = [["pluie", "Pluie"], ["humidite", "Humidité"], ["chaleur", "Chaleur"], ["panne", "Panne"], ["autre", "Autre"]];
 function str(v, max) { return typeof v === "string" ? v.slice(0, max || 2000) : ""; }
 function isoDate(v) { return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ""; }
 function cleanNote(n) {
@@ -146,7 +147,7 @@ function isEditing() {
   const a = document.activeElement, m = document.getElementById("contenu");
   return store.dirty || (a && m.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
 }
-document.addEventListener("input", function (e) { if (e.target.closest && e.target.closest("#note-form, #dec-form, #reg-form")) store.dirty = true; });
+document.addEventListener("input", function (e) { if (e.target.closest && e.target.closest("#note-form, #dec-form, #reg-form, #ferm-form")) store.dirty = true; });
 
 async function loadAll() {
   try {
@@ -155,6 +156,7 @@ async function loadAll() {
     const l = []; (s.decisions || []).forEach(function (r) { const d = decFromRow(r); if (d) l.push(d); });
     store.data = { v: 1, notes: n, decisions: sortDecs(l) };
     store.reglages = s.reglages; store.playtomic = s.playtomic;
+    store.terrains = Array.isArray(s.terrains) ? s.terrains : []; store.fermetures = Array.isArray(s.fermetures) ? s.fermetures : [];
     store.loaded = true; store.broken = false;
   } catch (e) { store.broken = true; }
   showStatus();
@@ -179,6 +181,7 @@ function metric(id) {
 }
 function sourceOf(id) {
   if (!M.res) return null;
+  if ((id === "perdues" || id === "affectees") && M.res.connecte) return id === "perdues" ? "Registre des fermetures" : "Registre des fermetures et Playtomic";
   if (LIVE.indexOf(id) >= 0 && M.res.connecte) return "Playtomic (réservations)";
   if (PAIE.indexOf(id) >= 0 && M.res.sources && M.res.sources.paie) return "Bulletins de paie";
   return null;
@@ -191,6 +194,8 @@ function periodOf(id) {
   return M.res.periode.libelle + (scope.sport ? " · " + scope.sport : "") + (scope.creneau ? " · " + scope.creneau : "");
 }
 function metricReason(id) {
+  // Raison fournie par le serveur, pour toute fiche (ex. donnée absente de l'API Playtomic).
+  if (M.res && M.res.mesures && M.res.mesures[id] && M.res.mesures[id].status === "na" && (LIVE.indexOf(id) < 0 || M.res.connecte)) return M.res.mesures[id].reason;
   if (LIVE.indexOf(id) < 0 && PAIE.indexOf(id) < 0) return null;
   if (M.loading && !M.res) return "Calcul en cours…";
   if (M.err) return M.err;
@@ -634,9 +639,11 @@ function viewReglages(m) {
   [["PADEL", "Padel"], ["TENNIS", "Tennis"], ["FOOTBALL", "Foot à 5"]].forEach(function (s) {
     const seen = pt.terrainsVus && pt.terrainsVus[s[0]];
     h += '<div class="field"><label for="t-' + s[0] + '">' + s[1] + '</label><input type="text" inputmode="numeric" id="t-' + s[0] + '" value="' + esc(r.terrains[s[0]] ? String(r.terrains[s[0]]) : "") + '" placeholder="' + (seen ? String(seen) : "") + '">' +
-      '<span class="small muted">' + (seen ? seen + " terrain(s) vu(s) dans Playtomic" : "Aucun terrain vu dans Playtomic") + " · laissez vide pour utiliser Playtomic</span></div>";
+      '<span class="small muted">' + (seen ? seen + " terrain(s) vu(s) dans Playtomic" : "Aucun terrain vu dans Playtomic") + " · laissez vide pour utiliser Playtomic</span>" +
+      (seen && r.terrains[s[0]] && r.terrains[s[0]] !== seen ? '<span class="msg err">Le réglage (' + r.terrains[s[0]] + ") diffère du nombre de terrains réservés dans Playtomic (" + seen + ") : vérifiez-le, il sert à calculer la capacité.</span>" : "") + "</div>";
   });
   h += '</div><div class="actions"><button type="submit" class="primary">Enregistrer les réglages</button><span class="' + flashCls("reg") + '" id="reg-msg" role="status" aria-live="polite">' + flashHtml("reg") + '</span></div></form>';
+  h += fermeturesHtml();
   h += '<section class="card" style="margin-top:14px" aria-labelledby="h-pt"><h2 id="h-pt" style="margin-top:0">Playtomic</h2>' +
     (pt.configure ? '<p>Connexion configurée. ' + pt.reservations + " réservation(s) en base. Synchronisation automatique chaque nuit.</p>"
       : '<p class="msg err">Identifiants Playtomic absents : ajoutez PLAYTOMIC_CLIENT_ID, PLAYTOMIC_CLIENT_SECRET et PLAYTOMIC_TENANT_ID dans les variables d’environnement Vercel, puis redéployez.</p>') +
@@ -684,6 +691,73 @@ function viewReglages(m) {
     flash.sync = { text: text, err: !ok };
     await loadAll();
   });
+  bindFermetures(m);
+}
+
+/* Registre des fermetures : alimente « Heures de terrain perdues » et « Réservations touchées ». */
+function causeLabel(c) { const x = CAUSES.find(function (k) { return k[0] === c; }); return x ? x[1] : c; }
+function fmtDT(iso) { const d = new Date(iso); return d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }) + " " + hhmm(d); }
+function fermeturesHtml() {
+  const ts = store.terrains;
+  const bySport = {};
+  ts.forEach(function (c) { (bySport[c.sport] = bySport[c.sport] || []).push(c); });
+  const sportLbl = { PADEL: "Padel", TENNIS: "Tennis", FOOTBALL: "Foot à 5" };
+  const nameOf = {}; ts.forEach(function (c) { nameOf[c.id] = c.nom; });
+  let h = '<form class="card" id="ferm-form" style="margin-top:14px" novalidate aria-labelledby="h-ferm"><h2 id="h-ferm" style="margin-top:0">Registre des fermetures</h2>' +
+    '<p class="small muted">Playtomic ne transmet pas les fermetures. Chaque fermeture saisie ici est déduite des heures jouables et alimente « Heures de terrain perdues » et « Réservations touchées par une fermeture ». Une heure fermée deux fois n’est comptée qu’une fois.</p>' +
+    '<div class="form-grid">' +
+    '<div class="field"><label for="f-debut">Début</label><input type="datetime-local" id="f-debut"></div>' +
+    '<div class="field"><label for="f-fin">Fin</label><input type="datetime-local" id="f-fin"></div>' +
+    '<div class="field"><label for="f-cause">Cause</label><select id="f-cause">' + CAUSES.map(function (c) { return '<option value="' + c[0] + '">' + c[1] + "</option>"; }).join("") + "</select></div>" +
+    '<div class="field"><label for="f-note">Précision (facultatif)</label><input type="text" id="f-note" maxlength="500"></div>' +
+    '<fieldset class="full"><legend>Terrains fermés</legend><div class="radios"><label><input type="checkbox" id="f-tous" checked> Tous les terrains</label></div>' +
+    Object.keys(bySport).map(function (sp) {
+      return '<div class="radios" style="margin-top:6px"><strong class="small" style="min-width:70px">' + esc(sportLbl[sp] || sp) + "</strong>" +
+        bySport[sp].map(function (c) { return '<label><input type="checkbox" class="f-court" value="' + esc(c.id) + '" disabled> ' + esc(c.nom) + "</label>"; }).join("") + "</div>";
+    }).join("") + (ts.length ? "" : '<p class="small muted">Aucun terrain connu : lancez une synchronisation Playtomic.</p>') + "</fieldset></div>" +
+    '<div class="actions"><button type="submit" class="primary">Ajouter la fermeture</button><span class="msg" id="f-msg" role="status" aria-live="polite"></span></div></form>';
+  const list = store.fermetures.slice().sort(function (a, b) { return a.debut < b.debut ? 1 : -1; });
+  h += '<section class="card" style="margin-top:14px" aria-labelledby="h-ferml"><h2 id="h-ferml" style="margin-top:0">Fermetures enregistrées (' + list.length + ")</h2>" +
+    (list.length ? '<div class="table-wrap"><table><thead><tr><th scope="col">Début</th><th scope="col">Fin</th><th scope="col">Terrains</th><th scope="col">Cause</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody>' +
+      list.map(function (f) {
+        const courts = f.terrains && f.terrains.length ? f.terrains.map(function (id) { return nameOf[id] || id; }).join(", ") : "Tous";
+        const del = store.pendingFerm === f.id
+          ? '<button type="button" class="danger" data-ferm-yes="' + esc(f.id) + '">Confirmer</button> <button type="button" data-ferm-no="1">Annuler</button>'
+          : '<button type="button" class="danger" data-ferm-del="' + esc(f.id) + '">Supprimer</button>';
+        return "<tr><td>" + esc(fmtDT(f.debut)) + "</td><td>" + esc(fmtDT(f.fin)) + "</td><td>" + esc(courts) + "</td><td>" + esc(causeLabel(f.cause)) + (f.note ? '<br><span class="small muted">' + esc(f.note) + "</span>" : "") + "</td><td>" + del + "</td></tr>";
+      }).join("") + "</tbody></table></div>"
+      : '<div class="empty"><p style="margin:0">Aucune fermeture enregistrée. Ajoutez la première avec le formulaire ci-dessus.</p></div>') + "</section>";
+  return h;
+}
+function bindFermetures(m) {
+  const tous = $("#f-tous");
+  if (!tous) return;
+  tous.addEventListener("change", function () { $all(".f-court", m).forEach(function (c) { c.disabled = tous.checked; if (tous.checked) c.checked = false; }); });
+  $("#ferm-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const msg = $("#f-msg");
+    const d = $("#f-debut").value, f = $("#f-fin").value;
+    if (!d || !f) { msg.className = "msg err"; msg.textContent = "Indiquez le début et la fin de la fermeture."; return; }
+    const di = new Date(d), fi = new Date(f);
+    if (!(fi > di)) { msg.className = "msg err"; msg.textContent = "La fin doit suivre le début."; $("#f-fin").focus(); return; }
+    const courts = tous.checked ? [] : $all(".f-court:checked", m).map(function (c) { return c.value; });
+    if (!tous.checked && !courts.length) { msg.className = "msg err"; msg.textContent = "Cochez au moins un terrain, ou « Tous les terrains »."; return; }
+    msg.className = "msg"; msg.textContent = "Enregistrement…";
+    try {
+      await api("POST", "/api/fermetures", { debut: di.toISOString(), fin: fi.toISOString(), terrains: courts, cause: $("#f-cause").value, note: $("#f-note").value.trim() });
+      store.dirty = false; store.last = new Date();
+      flash.reg = { text: "Fermeture ajoutée. Les mesures Terrains sont recalculées.", err: false };
+      await loadAll();
+    } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+  });
+  $all("[data-ferm-del]", m).forEach(function (b) { b.addEventListener("click", function () { store.pendingFerm = b.dataset.fermDel; rerender(); }); });
+  $all("[data-ferm-no]", m).forEach(function (b) { b.addEventListener("click", function () { store.pendingFerm = null; rerender(); }); });
+  $all("[data-ferm-yes]", m).forEach(function (b) {
+    b.addEventListener("click", async function () {
+      try { await api("DELETE", "/api/fermetures/" + encodeURIComponent(b.dataset.fermYes)); store.pendingFerm = null; await loadAll(); }
+      catch (err) { store.pendingFerm = null; flash.reg = { text: err.message, err: true }; rerender(); }
+    });
+  });
 }
 
 function viewNotFound(m, t) {
@@ -700,7 +774,7 @@ function rerender() {
   window.scrollTo(0, y);
 }
 function route() {
-  store.pendingDel = null; flash.reg = null; flash.sync = null;
+  store.pendingDel = null; store.pendingFerm = null; flash.reg = null; flash.sync = null;
   store.dirty = false; store.pending = false;
   render();
   const h1 = $("h1", $("#contenu"));
