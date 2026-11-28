@@ -1,0 +1,4 @@
+{
+  "crons": [{ "path": "/api/cron/sync-playtomic", "schedule": "15 4 * * *" }],
+  "regions": ["cdg1"]
+}

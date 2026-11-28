@@ -1,11 +1,25 @@
-# LES ACACIAS — Tableau de bord V1.0
+# Tableau de bord Les Acacias
 
-Ouvrir `LES-ACACIAS-Tableau-de-bord-V1.0.html` dans un navigateur. Fichier autonome (HTML, CSS et JavaScript intégrés) : aucun serveur, compte, connecteur ni requête réseau.
+Application Next.js (Vercel) + Supabase. Le tableau de bord de la V1 (12 cartes, 128 fiches, 18 produits, registre des décisions) avec :
 
-- Vues : Synthèse (12 cartes), BtoC, BtoB, Produits (18 offres), Exploitation, Indicateurs à relier (128 fiches), Décisions.
-- Navigation par fragment : `#synthese`, `#indicateurs`, `#fiche-<identifiant>`, `#produit-<offre>`, `#decisions`…
-- Aucune donnée d’activité : valeurs, objectifs, écarts, tendances et synchronisations affichent « — » / « À relier ».
-- Version en ligne (Artifact claude.ai) : annotations et décisions enregistrées dans une base partagée (collections `notes` et `decisions`), visibles depuis n’importe quel ordinateur par les personnes ayant accès.
-- Fichier ouvert hors ligne : repli sur le stockage local du navigateur (clé `les-acacias-tdb-v1`), propre à l’appareil. Si le stockage est interdit, l’en-tête le signale.
+- connexion par e-mail et mot de passe (Supabase Auth) ;
+- annotations des fiches, décisions et réglages enregistrés dans Supabase ;
+- **Playtomic relié** : réservations synchronisées chaque nuit (Vercel Cron, 5 h 15 heure de Paris) et à la demande, via l'API tierce en lecture seule. Seuls les champs utiles au calcul sont stockés, aucune donnée personnelle ;
+- 11 fiches Terrains calculées (capacité, heures jouables et proposées, réservées, occupation, usage, heures vides, revenu par heure, prix moyen, durée moyenne, annulations), filtrables par période, sport et créneau, avec tendance sur la période précédente. Les hypothèses (fermetures non relevées, CA non comptable) sont affichées sur chaque fiche.
 
-Spécification : `docs/LES-ACACIAS-Script-Claude-V1.0.md`.
+La version statique d'origine est dans `v1-statique/`.
+
+## Mise en service
+
+1. **Supabase** : créer un projet, ouvrir SQL Editor et exécuter `supabase/migrations/001_init.sql`. Dans Authentication, créer votre utilisateur (Add user) puis désactiver les nouvelles inscriptions.
+2. **Vercel** : Add New > Project > importer ce dépôt GitHub. Renseigner les variables de `.env.local.example` (Settings > Environment Variables), puis déployer.
+3. Se connecter, ouvrir **Réglages**, saisir les horaires d'ouverture, puis cliquer **Synchroniser maintenant**.
+
+## Développement
+
+```
+npm install
+cp .env.local.example .env.local   # puis compléter
+npm run dev
+npm test        # moteur de calcul Terrains
+```
